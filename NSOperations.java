@@ -43,12 +43,12 @@ public class NSOperations {
         return value;
     }
 
-    public void insert(int key, String value, String hopInfo, ArrayList<Integer> serverIDS) throws IOException {
+    public boolean insert(int key, String value, String hopInfo, ArrayList<Integer> serverIDS) throws IOException {
         hopInfo += this.ID + "-";
         if(key > Collections.max(serverIDS)) {
             System.out.println("Nodes searched :" + hopInfo.substring(0, hopInfo.length() - 1));
             data.put(key, value);
-            return;
+            return true;
         } else if(key <= nsMeta.getSuccessorID()){
             nxtSrvSocket = new Socket(nsMeta.getSuccessorIP(), nsMeta.getSuccessorPort());
             dis = new DataInputStream(nxtSrvSocket.getInputStream());
@@ -56,20 +56,31 @@ public class NSOperations {
             dos.writeUTF("insert " + String.valueOf(key) + " " + value);
             dos.writeUTF(hopInfo);
             hopInfo = dis.readUTF();
-        } else {
-
+            return true;
         }
+        System.out.println("Nodes searched :" + hopInfo.substring(0, hopInfo.length() - 1));
+        System.out.println("Key: " + key + " not found");
+        return false;
     }
 
-    public void delete(int key, String hopInfo, ArrayList<Integer> serverIDS) {
+    public boolean delete(int key, String hopInfo, ArrayList<Integer> serverIDS) throws IOException {
         hopInfo += this.ID + "-";
         if(key > Collections.max(serverIDS)) {
             System.out.println("Nodes searched :" + hopInfo.substring(0, hopInfo.length() - 1));
             data.remove(key);
-            return;
+            return true;
         } else if (key <= nsMeta.getSuccessorID()) {
-            
+            nxtSrvSocket = new Socket(nsMeta.getSuccessorIP(), nsMeta.getSuccessorPort());
+            dis = new DataInputStream(nxtSrvSocket.getInputStream());
+            dos = new DataOutputStream(nxtSrvSocket.getOutputStream());
+            dos.writeUTF("delete " + String.valueOf(key));
+            dos.writeUTF(hopInfo);
+            hopInfo = dis.readUTF();
+            return true;
         }
+        System.out.println("Nodes searched :" + hopInfo.substring(0, hopInfo.length() - 1));
+        System.out.println("Key: " + key + " not found");
+        return false;
     }
 }
 

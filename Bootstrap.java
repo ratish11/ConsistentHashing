@@ -194,7 +194,6 @@ public class Bootstrap {
 }
 
 class BootstrapUI implements Runnable{
-
     Bootstrap bootstrap;
     public  BootstrapUI(Bootstrap bootstrap) {
         this.bootstrap = bootstrap;
