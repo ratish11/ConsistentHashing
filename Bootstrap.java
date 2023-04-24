@@ -69,8 +69,8 @@ public class Bootstrap {
 //          Here check special case for Bootstrap server
             if(this.nsOperations.nsMeta.getPredecessorID() == 0 && this.nsOperations.nsMeta.getSuccessorID() == 0){
 //              only 1st name server entering will have succ and pred as Bootstrap
-                this.nsOperations.nsMeta.updatePredecessor(nsID, nsIP, nsPort);
-                this.nsOperations.nsMeta.updateSuccessor(nsID, nsIP, nsPort);
+                this.nsOperations.nsMeta.updatePredecessor(this.nsOperations.nsMeta.getID(), this.nsOperations.nsMeta.getIP(), this.nsOperations.nsMeta.getServerPort());
+                this.nsOperations.nsMeta.updateSuccessor(this.nsOperations.nsMeta.getID(), this.nsOperations.nsMeta.getIP(), this.nsOperations.nsMeta.getServerPort());
                 dos.writeUTF("predecessorInfo: " + this.nsOperations.nsMeta.getID() + " " + this.nsOperations.nsMeta.getIP() + " " + this.nsOperations.nsMeta.getServerPort());
                 dos.writeUTF("successorInfo: " + this.nsOperations.nsMeta.getID() + " " + this.nsOperations.nsMeta.getIP() + " " + this.nsOperations.nsMeta.getServerPort());
             } else {
