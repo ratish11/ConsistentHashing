@@ -7,31 +7,39 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.TreeMap;
 
 public class NSOperations {
     HashMap<Integer, String> data;
     int ID, serverPort;
+    ArrayList<Integer> serverIDS;
     NSMeta nsMeta = null;
     static Socket nxtSrvSocket = null;
     DataInputStream dis = null;
     DataOutputStream dos = null;
+    public NSOperations(HashMap<Integer, String> data, int ID, int serverPort, ArrayList<Integer> serverIDS) {
+        this.data = data;
+        this.ID = ID;
+        this.serverPort = serverPort;
+        this.serverIDS = serverIDS;
+        this.nsMeta = new NSMeta(ID, serverPort);
+//        System.out.println(this.nsMeta);
+    }
     public NSOperations(HashMap<Integer, String> data, int ID, int serverPort) {
         this.data = data;
         this.ID = ID;
         this.serverPort = serverPort;
-        this.nsMeta = new NSMeta(this.ID, this.serverPort);
+        this.nsMeta = new NSMeta(ID, serverPort);
+//        System.out.println(this.nsMeta);
     }
-    public String lookup(int key, String hopInfo) throws UnknownHostException, IOException, ClassNotFoundException {
+    public void lookup(int key, String hopInfo) throws UnknownHostException, IOException, ClassNotFoundException {
         String value = null;
-//        if(this.ID == 0) {
-//            hopInfo = "";
-//        }
         hopInfo += String.valueOf(this.ID) + "-";
         if(data.containsKey(key)) {
             System.out.println("Nodes searched :" + hopInfo.substring(0, hopInfo.length() - 1));
             value = data.get(key);
-            return value;
-        } else {
+            System.out.println("Key: " + key + " Value: " + value);
+        } else if(0 != nsMeta.getSuccessorID()){
             nxtSrvSocket = new Socket(nsMeta.getSuccessorIP(), nsMeta.getSuccessorPort());
             dis = new DataInputStream(nxtSrvSocket.getInputStream());
             dos = new DataOutputStream(nxtSrvSocket.getOutputStream());
@@ -39,15 +47,19 @@ public class NSOperations {
             dos.writeUTF(hopInfo);
             value = dis.readUTF();
             hopInfo = dis.readUTF();
+        } else {
+            System.out.println("Error: Key " + key + " not found.");
         }
-        return value;
     }
 
-    public boolean insert(int key, String value, String hopInfo, ArrayList<Integer> serverIDS) throws IOException {
+    public boolean insert(int key, String value, String hopInfo) throws IOException {
         hopInfo += this.ID + "-";
         if(key > Collections.max(serverIDS)) {
             System.out.println("Nodes searched :" + hopInfo.substring(0, hopInfo.length() - 1));
+            if(data.containsKey(key)) System.out.println("Updating Key Value pair: " + key + " "+ data.get(key) + " with " + value);
             data.put(key, value);
+            printInfo();
+            System.out.println("Key Value Pair Inserted at server: " + this.ID);
             return true;
         } else if(key <= nsMeta.getSuccessorID()){
             nxtSrvSocket = new Socket(nsMeta.getSuccessorIP(), nsMeta.getSuccessorPort());
@@ -63,11 +75,12 @@ public class NSOperations {
         return false;
     }
 
-    public boolean delete(int key, String hopInfo, ArrayList<Integer> serverIDS) throws IOException {
+    public boolean delete(int key, String hopInfo) throws IOException {
         hopInfo += this.ID + "-";
         if(key > Collections.max(serverIDS)) {
             System.out.println("Nodes searched :" + hopInfo.substring(0, hopInfo.length() - 1));
             data.remove(key);
+            printInfo();
             return true;
         } else if (key <= nsMeta.getSuccessorID()) {
             nxtSrvSocket = new Socket(nsMeta.getSuccessorIP(), nsMeta.getSuccessorPort());
@@ -76,11 +89,17 @@ public class NSOperations {
             dos.writeUTF("delete " + String.valueOf(key));
             dos.writeUTF(hopInfo);
             hopInfo = dis.readUTF();
+            printInfo();
             return true;
         }
         System.out.println("Nodes searched :" + hopInfo.substring(0, hopInfo.length() - 1));
         System.out.println("Key: " + key + " not found");
         return false;
+    }
+    public void printInfo() {
+        TreeMap sorted = new TreeMap<>();
+        sorted.putAll(data);
+        System.out.println(sorted);
     }
 }
 
@@ -93,10 +112,10 @@ class NSMeta {
         this.serverPort = serverPort;
         predecessorIP = null;
         successorIP = null;
-        predecessorID = Integer.parseInt(null);
-        successorID = Integer.parseInt(null);
-        predecessorPort = Integer.parseInt(null);
-        successorPort = Integer.parseInt(null);
+        predecessorID = 0;
+        successorID = 0;
+        predecessorPort = 0;
+        successorPort = 0;
     }
     public void setRingMeta(int predecessorID, String predecessorIP, int predecessorPort, int successorID, String successorIP, int successorPort) {
         this.predecessorID = predecessorID;

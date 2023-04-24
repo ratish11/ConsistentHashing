@@ -1,4 +1,4 @@
-import org.jetbrains.annotations.NotNull;
+//import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.net.Inet4Address;
@@ -16,9 +16,10 @@ public class Bootstrap {
     static int ID;
     static int serverPort;
     NSOperations nsOperations;
+//    System.out.println(data + " " + ID + " " + serverPort);
     public Bootstrap() {
-        nsOperations = new NSOperations(data, ID, serverPort );
-        serverIDS.add(ID);
+        this.serverIDS.add(ID);
+        this.nsOperations = new NSOperations(data, ID, serverPort, serverIDS);
     }
 
 
@@ -36,6 +37,7 @@ public class Bootstrap {
             String[] kv = scanner.nextLine().split(" ");
             bootstrap.nsOperations.data.put(Integer.parseInt(kv[0]), kv[1]);
         }
+        bootstrap.nsOperations.printInfo();
         new Thread(new BootstrapUI(bootstrap)).start();
         while(true) {
             socket = serverSocket.accept();
@@ -52,7 +54,7 @@ public class Bootstrap {
                 bootstrap.nsExiting(nsMsg);
         }
     }
-    private void nsEntering(@NotNull String nsMsg) throws IOException {
+    private void nsEntering(String nsMsg) throws IOException {
         int nsID = Integer.parseInt(nsMsg.trim().split(" ")[1]);
         String nsIP = nsMsg.trim().split(" ")[2];
         int nsPort = Integer.parseInt(nsMsg.trim().split(" ")[3]);
@@ -133,7 +135,7 @@ public class Bootstrap {
     private void updateSuccessor(String nsMsg) {
 
     }
-    private void nsExiting(@NotNull String nsMsg) throws IOException, UnknownHostException {
+    private void nsExiting(String nsMsg) throws IOException, UnknownHostException {
         int nsID = Integer.parseInt(nsMsg.trim().split(" ")[1]);
         String nsIP = nsMsg.trim().split(" ")[2];
         int nsPort = Integer.parseInt(nsMsg.trim().split(" ")[3]);
@@ -204,24 +206,33 @@ class BootstrapUI implements Runnable{
         String cmd = "";
         Scanner userInput = new Scanner(System.in);
         while(true) {
-            System.out.println("bootstrapSh$> ");
+            System.out.print("bootstrapSh$> ");
             cmd = userInput.nextLine();
+            if(Integer.parseInt(cmd.trim().split(" ")[1]) < 0 || Integer.parseInt(cmd.trim().split(" ")[1]) > 1023) {
+                System.out.println("Error: Key " + cmd.trim().split(" ")[1] + " is out or range");
+                continue;
+            }
             if(cmd.trim().split(" ")[0].equals("lookup")) {
                 try {
-                    bootstrap.nsOperations.lookup(Integer.parseInt(cmd.trim().split(" ")[1]), "0"); // hopstart at bootstrap server with 0 as ID
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                } catch (ClassNotFoundException e) {
+                    bootstrap.nsOperations.lookup(Integer.parseInt(cmd.trim().split(" ")[1]), ""); // hopstart at bootstrap server with 0 as ID
+                } catch (IOException | ClassNotFoundException e) {
                     throw new RuntimeException(e);
                 }
-                break;
+            } else if (cmd.trim().split(" ")[0].equals("insert")) {
+                try {
+                    bootstrap.nsOperations.insert(Integer.parseInt(cmd.trim().split(" ")[1]), cmd.trim().split(" ")[2], ""); // hopstart at bootstrap server with 0 as ID
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            } else if (cmd.trim().split(" ")[0].equals("delete")) {
+                try {
+                    bootstrap.nsOperations.delete(Integer.parseInt(cmd.trim().split(" ")[1]), ""); // hopstart at bootstrap server with 0 as ID
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            } else {
+                System.out.println("Error: command not found..");
             }
-//            need to add insert and delete methods
-//            else if (cmd.trim().equals("insert")) {
-//                try {
-//                    bootstrap.nsOperations.
-//                }
-//            }
         }
 
     }

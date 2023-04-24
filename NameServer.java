@@ -57,14 +57,6 @@ class NameServerUI implements Runnable{
             } else {
                 System.out.println(cmd + ": command not found..");
             }
-//            need to add insert and delete methods
-//            else if (cmd.trim().equals("insert")) {
-//                try {
-//                    bootstrap.nsOperations.
-//                }
-//            }
         }
-
     }
-
 }
