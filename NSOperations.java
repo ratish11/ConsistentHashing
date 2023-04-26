@@ -34,7 +34,7 @@ public class NSOperations {
     }
     public void lookup(int key, String hopInfo) throws UnknownHostException, IOException, ClassNotFoundException {
         String value = null;
-        hopInfo += String.valueOf(this.ID) + "-";
+        hopInfo += String.valueOf(ID) + "-";
         if(data.containsKey(key)) {
             System.out.println("Nodes searched :" + hopInfo.substring(0, hopInfo.length() - 1));
             value = data.get(key);
@@ -42,11 +42,11 @@ public class NSOperations {
         } else if(0 != nsMeta.getSuccessorID()){
             nxtSrvSocket = new Socket(nsMeta.getSuccessorIP(), nsMeta.getSuccessorPort());
             dis = new DataInputStream(nxtSrvSocket.getInputStream());
-            dos = new DataOutputStream(nxtSrvSocket.getOutputStream());
+            dos = new DataOutputStream(nxtSrvSocket.getOutputStream()); 
             dos.writeUTF("lookup " + String.valueOf(key));
             dos.writeUTF(hopInfo);
             value = dis.readUTF();
-            hopInfo = dis.readUTF();
+            hopInfo = dis.readUTF(); 
         } else {
             System.out.println("Error: Key " + key + " not found.");
         }
