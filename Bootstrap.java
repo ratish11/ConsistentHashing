@@ -37,13 +37,14 @@ public class Bootstrap {
             String[] kv = scanner.nextLine().split(" ");
             bootstrap.nsOperations.data.put(Integer.parseInt(kv[0]), kv[1]);
         }
-        bootstrap.nsOperations.printInfo();
+//        bootstrap.nsOperations.printInfo();
         new Thread(new BootstrapUI(bootstrap)).start();
         while(true) {
             socket = serverSocket.accept();
             DataInputStream dis = new DataInputStream(socket.getInputStream());
             DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
             String nsMsg = dis.readUTF();
+            System.out.println(nsMsg);
             if(nsMsg.trim().split(" ")[0].equals("enter"))
                 bootstrap.nsEntering(nsMsg); //syntax: `enter <ID> <IP> <port>`
             else if (nsMsg.trim().split(" ")[0].equals("updatePredecessor"))
@@ -52,6 +53,7 @@ public class Bootstrap {
                 bootstrap.updateSuccessor(nsMsg);
             else if (nsMsg.trim().split(" ")[0].equals("exit"))
                 bootstrap.nsExiting(nsMsg);
+            System.out.print("\nbootstrapSh$> ");
         }
     }
     private void nsEntering(String nsMsg) throws IOException {
@@ -65,7 +67,10 @@ public class Bootstrap {
             DataOutputStream dos = new DataOutputStream(nsSockConn.getOutputStream());
             DataInputStream dis = new DataInputStream(nsSockConn.getInputStream());
             serverIDS.add(nsID);
-            nsConnAll.put(nsID, new Socket(nsIP, nsPort));
+            nsConnAll.put(nsID, nsSockConn);
+            List<Integer> deleteKey =  getKeysFromSuccessor(nsID, cursPred, cursSucc);
+//            System.out.println(serverIDS);
+//            System.out.println(nsConnAll);
 //          Here check special case for Bootstrap server
             if(this.nsOperations.nsMeta.getPredecessorID() == 0 && this.nsOperations.nsMeta.getSuccessorID() == 0){
 //              only 1st name server entering will have succ and pred as Bootstrap
@@ -81,40 +86,55 @@ public class Bootstrap {
                 }
 //              now get cursPred's Socket connection and say to update their succ and get their details
                 if(cursPred == 0){
+                    System.out.println("updating self's successor");
                     this.nsOperations.nsMeta.updateSuccessor(nsID, nsIP, nsPort);
                     dos.writeUTF("predecessorInfo: " + this.nsOperations.nsMeta.getID() + " " + this.nsOperations.nsMeta.getIP() + " " + this.nsOperations.nsMeta.getServerPort());
                 } else {
                     Socket predSock = nsConnAll.get(cursPred);
+                    System.out.println("updating predecessor's successor");
                     dos.writeUTF("predecessorInfo: " + cursPred + " " + predSock.getInetAddress() + " " + predSock.getPort());
                     new DataOutputStream(predSock.getOutputStream()).writeUTF("successorInfo: " + nsID + " " + nsIP + " " + nsPort);
                 }
 //              then get cursSucc's Socket connection and say to update their pred
                 if(cursSucc == 0){
+                    System.out.println("updating self's predecessor");
                     this.nsOperations.nsMeta.updatePredecessor(nsID, nsIP, nsPort);
                     dos.writeUTF("successorInfo: " + this.nsOperations.nsMeta.getID() + " " + this.nsOperations.nsMeta.getIP() + " " + this.nsOperations.nsMeta.getServerPort());
                 } else {
+                    System.out.println("updating successor's predecessor");
                     Socket succSock = nsConnAll.get(cursSucc);
                     dos.writeUTF("successorInfo: " + cursSucc + " " + succSock.getInetAddress() + " " + succSock.getPort());
                     new DataOutputStream(succSock.getOutputStream()).writeUTF("predecessorInfo: " + nsID + " " + nsIP + " " + nsPort);
                 }
 //                now transfer the keys to the newly added NameServer
             }
+//            delete the transfered key after completing pred and succ update
+            for(Integer k : deleteKey) {
+                this.data.remove(k);
+            }
+//            nsOperations.printInfo();
         } catch (IOException io) {
             io.printStackTrace();
         }
-        getKeysFromSuccessor(nsID, cursPred, cursSucc);
+        System.out.println(serverIDS);
+        System.out.println(this.nsOperations.nsMeta.getPredecessorID());
+        System.out.println(this.nsOperations.nsMeta.getSuccessorID());
 
+        System.out.println("NameServer " + nsID + " successfully entered the system.");
     }
 
-    private void getKeysFromSuccessor(int selfID, int predID, int succID) throws IOException {
-        DataOutputStream selfDos = new DataOutputStream(nsConnAll.get(selfID).getOutputStream());
+    private List<Integer> getKeysFromSuccessor(int selfID, int predID, int succID) throws IOException {
+        DataOutputStream selfDos = new DataOutputStream(this.nsConnAll.get(selfID).getOutputStream());
 //        selfDos.writeUTF("start KV transfer");
+        List<Integer> deleteKey = new ArrayList<>();
         if(succID == 0) {
             for(int i = predID+1; i<=selfID; i++) {
                 if(data.containsKey(i)) {
                     selfDos.writeUTF(String.valueOf(i) + " " + data.get(i));
-                    data.remove(i);
+//                    data.remove(i);
+                    deleteKey.add(i);
                 }
+                selfDos.writeUTF("end transfer");
             }
         } else {
             DataOutputStream succDos = new DataOutputStream(nsConnAll.get(succID).getOutputStream());
@@ -124,10 +144,13 @@ public class Bootstrap {
                 String resp = succDis.readUTF();
                 if(!resp.equals("end transfer")) {
                     selfDos.writeUTF(resp); //response should be of format 'key value'
+                    deleteKey.add(Integer.valueOf(resp.split(" ")[0]));
                 } else break;
             }
+            selfDos.writeUTF("end transfer");
         }
 //        selfDos.writeUTF("KV transfer end");
+        return deleteKey;
     }
 
     private void updatePredecessor(String nsMsg) {
