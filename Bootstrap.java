@@ -82,7 +82,7 @@ public class Bootstrap {
 //              now get cursPred's Socket connection and say to update their succ and get their details
                 if(cursPred == 0){
                     this.nsOperations.nsMeta.updateSuccessor(nsID, nsIP, nsPort);
-                    dos.writeUTF("successorInfo: " + this.nsOperations.nsMeta.getID() + " " + this.nsOperations.nsMeta.getIP() + " " + this.nsOperations.nsMeta.getServerPort());
+                    dos.writeUTF("predecessorInfo: " + this.nsOperations.nsMeta.getID() + " " + this.nsOperations.nsMeta.getIP() + " " + this.nsOperations.nsMeta.getServerPort());
                 } else {
                     Socket predSock = nsConnAll.get(cursPred);
                     dos.writeUTF("predecessorInfo: " + cursPred + " " + predSock.getInetAddress() + " " + predSock.getPort());
@@ -91,7 +91,7 @@ public class Bootstrap {
 //              then get cursSucc's Socket connection and say to update their pred
                 if(cursSucc == 0){
                     this.nsOperations.nsMeta.updatePredecessor(nsID, nsIP, nsPort);
-                    dos.writeUTF("successorInfo: " + this.nsOperations.nsMeta.getID() + this.nsOperations.nsMeta.getIP() + this.nsOperations.nsMeta.getServerPort());
+                    dos.writeUTF("successorInfo: " + this.nsOperations.nsMeta.getID() + " " + this.nsOperations.nsMeta.getIP() + " " + this.nsOperations.nsMeta.getServerPort());
                 } else {
                     Socket succSock = nsConnAll.get(cursSucc);
                     dos.writeUTF("successorInfo: " + cursSucc + " " + succSock.getInetAddress() + " " + succSock.getPort());
