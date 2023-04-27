@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
 public class NameServer {
-    HashMap<Integer, String> data = new HashMap<>();
+    static HashMap<Integer, String> data = new HashMap<>();
     static ServerSocket serverSocket;
     static Socket bootstrapSocket, socket;
     static int nsID;
@@ -39,15 +39,40 @@ public class NameServer {
             dos = new DataOutputStream(socket.getOutputStream());
 
             String msg = dis.readUTF();
-            if(!msg.startsWith("update")) {
-                String hopInfo = dis.readUTF();
+            int key = Integer.parseInt(msg.split(" ")[1]);
+        
+            String hopInfo = dis.readUTF();
+
+            if(!msg.startsWith("update")){
                 if(msg.split(" ")[0].equals("lookup")) {
-                    nameServer.nsOperations.lookup(Integer.parseInt(msg.split(" ")[1]), hopInfo);
+                    hopInfo += String.valueOf(nsID) + "-";
+                    if (data.get(key)!= null){
+                        dos.writeUTF(data.get(key));
+                        dos.writeUTF(hopInfo);
+                    }
+                    else{
+                        nameServer.nsOperations.lookup(key, hopInfo);
+                    }
+                    
                 } else if (msg.split(" ")[0].equals("insert")) {
-                    nameServer.nsOperations.insert(Integer.parseInt(msg.split(" ")[1]), msg.split(" ")[2], hopInfo);
+                    String value = msg.split(" ")[2]; 
+                    hopInfo += String.valueOf(nsID) + "-";
+                    if (key <  nsID) {
+                        data.put(key,value); 
+                        dos.writeUTF(hopInfo);   
+                    } else {
+                        nameServer.nsOperations.insert(key, value, hopInfo);        
+                    }
+                
                 } else if (msg.split(" ")[0].equals("delete")) {
+                    if(key < nsID){
+                        data.remove(key);
+                        dos.writeUTF(hopInfo);
+                    }
                     nameServer.nsOperations.lookup(Integer.parseInt(msg.split(" ")[1]), hopInfo);
                 }
+            }else{
+
             }
 
 
