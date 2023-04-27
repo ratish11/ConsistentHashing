@@ -1,4 +1,3 @@
-import java.awt.*;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -8,19 +7,19 @@ import java.util.HashMap;
 import java.util.Scanner;
 public class NameServer {
     HashMap<Integer, String> data = new HashMap<>();
-    static ServerSocket nsServerSocket;
-    static Socket bootstrapSocket, nsSocket;
+    static ServerSocket serverSocket;
+    static Socket bootstrapSocket, socket;
     static int nsID;
     static int nsPort;
     static int bootstrapPort;
     static String bootstrapIP;
     NSOperations nsOperations;
+    static DataInputStream dis;
+    static DataOutputStream dos;
     public NameServer() throws IOException {
         this.nsOperations = new NSOperations(data, nsID, nsPort);
-        this.nsServerSocket = new ServerSocket(nsPort);
-        this.nsSocket = nsServerSocket.accept();
     }
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, ClassNotFoundException {
         File confFile = new File(args[0]);
 //        read config from file
         Scanner scanner = new Scanner(confFile);
@@ -32,45 +31,50 @@ public class NameServer {
 
         NameServer nameServer = new NameServer();
         new Thread(new NameServerUI(nameServer)).start();
-//        nsService();
+
+        serverSocket = new ServerSocket(nsPort);
+        while(true) {
+            socket = serverSocket.accept();
+            dis = new DataInputStream(socket.getInputStream());
+            dos = new DataOutputStream(socket.getOutputStream());
+
+            String msg = dis.readUTF();
+            if(!msg.startsWith("update")) {
+                String hopInfo = dis.readUTF();
+                if(msg.split(" ")[0].equals("lookup")) {
+                    nameServer.nsOperations.lookup(Integer.parseInt(msg.split(" ")[1]), hopInfo);
+                } else if (msg.split(" ")[0].equals("insert")) {
+                    nameServer.nsOperations.insert(Integer.parseInt(msg.split(" ")[1]), msg.split(" ")[2], hopInfo);
+                } else if (msg.split(" ")[0].equals("delete")) {
+                    nameServer.nsOperations.lookup(Integer.parseInt(msg.split(" ")[1]), hopInfo);
+                }
+            }
+
+
+        }
     }
 
-//    private static void nsService() throws IOException {
-//        ServerSocket
-//        while (true) {
-//            nsSocket = nsServerSocket.accept();
-//            DataInputStream dis = new DataInputStream(nsSocket.getInputStream());
-//            DataOutputStream dos = new DataOutputStream((nsSocket.getOutputStream()));
-////            while(true) {
-////                String resp = dis.readUTF();
-////                if(resp.equals("end transfer"))
-////                   break;
-////                data.put(Integer.valueOf(resp.split(" ")[0]), resp.split(" ")[1])
-//////                System.out.println(resp);
-////            }
-//        }
-//    }
 
     public void enterRing() throws UnknownHostException, IOException {
         System.out.println("Info: entering system..");
         bootstrapSocket = new Socket(bootstrapIP, bootstrapPort);
-        DataOutputStream bdos = new DataOutputStream(bootstrapSocket.getOutputStream());
+//        DataOutputStream bdos = new DataOutputStream(bootstrapSocket.getOutputStream());
         DataInputStream bdis = new DataInputStream(bootstrapSocket.getInputStream());
-        DataOutputStream dos = new DataOutputStream(nsSocket.getOutputStream());
-        DataInputStream dis = new DataInputStream(nsSocket.getInputStream());
+//        DataOutputStream dos = new DataOutputStream(nsSocket.getOutputStream());
+//        DataInputStream dis = new DataInputStream(nsSocket.getInputStream());
 
         dos.writeUTF("enter " + nsOperations.nsMeta.getID() + " " + nsOperations.nsMeta.getIP() + " " + nsOperations.nsMeta.getServerPort());
 
         while(true) {
-            String resp = dis.readUTF();
+            String resp = bdis.readUTF();
             if(resp.equals("end transfer"))
                 break;
             data.put(Integer.valueOf(resp.split(" ")[0]), resp.split(" ")[1]);
 //            System.out.println(resp);
         }
 
-        String predecessorInfo = dis.readUTF();
-        String successorInfo = dis.readUTF();
+        String predecessorInfo = bdis.readUTF();
+        String successorInfo = bdis.readUTF();
 
         int predecessorID = Integer.parseInt(predecessorInfo.split(" ")[1]);
         String predecessorIP = predecessorInfo.split(" ")[1];
