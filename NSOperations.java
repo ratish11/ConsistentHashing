@@ -100,6 +100,8 @@ public class NSOperations {
         TreeMap sorted = new TreeMap<>();
         sorted.putAll(data);
         System.out.println(sorted);
+        System.out.println(this.nsMeta.getPredecessorID());
+        System.out.println(this.nsMeta.getSuccessorID());
     }
 }
 
