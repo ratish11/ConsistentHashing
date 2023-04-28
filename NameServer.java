@@ -41,9 +41,9 @@ public class NameServer {
             dos = new DataOutputStream(socket.getOutputStream());
             String msg = dis.readUTF();
             System.out.println("\n" + msg);
-            if(msg.startsWith("enter")) { nameServer.enterRing(); }//nameServer.nsOperations.printInfo();
+            if(msg.startsWith("enter")) { nameServer.enterRing(); System.out.println("enterRing finish");}//nameServer.nsOperations.printInfo();
             else if(msg.startsWith("exit")) nameServer.exitRing();
-            else if (msg.startsWith("sendKV")) {nameServer.sendKVtoPredcessor(msg,dis, dos); break;}
+            else if (msg.startsWith("sendKV")) {nameServer.sendKVtoPredcessor(msg,dis, dos); }
             else if(!msg.startsWith("update")) {
                 String hopInfo = dis.readUTF();
                 if(msg.split(" ")[0].equals("lookup")) {
