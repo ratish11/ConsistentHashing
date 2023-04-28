@@ -8,6 +8,7 @@ import java.net.Inet4Address;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
@@ -17,82 +18,78 @@ import java.util.*;
 
 public class Bootstrap implements Serializable  {
 
-	private static ServerSocket server;
-	 private static int serverPortForConnection;
-	 static int count = 0;
-	 static Socket socket = null;
-	 static Socket fwdSocket = null;
+	private static ServerSocket serverSocket;
+	private static int serverPort, ID;
+	static Socket socket, nxtSrvSocket;
 	static ArrayList<Integer> serverIDS = new ArrayList<>();
 	HashMap<Integer, String> data = new HashMap<>();
-	NSMeta nsInfo;
+	NSMeta nsMeta;
 	public Bootstrap(){
-		nsInfo = new NSMeta(0,serverPortForConnection);
+		nsMeta = new NSMeta(ID,serverPort, data);
 		serverIDS.add(0);
 	}
 	
 	String lookup(int key) throws UnknownHostException, IOException, ClassNotFoundException {
-		
-		if(data.containsKey(key)) {
-			System.out.println("Server Visited 0"  );
-			return (data.get(key));
+		if(key>= Collections.max(serverIDS)) {
+			if(data.containsKey(key)) {
+				System.out.println("Server Visited 0"  );
+				return (data.get(key));
+			} else {
+				return "Error: Key not found";
+			}
 		}
-			
-		//else contact successor
-		//System.out.println(nsInfo.getSuccessorIP());
-	//	System.out.println(nsInfo.successorPortListning);
-		 fwdSocket = new Socket(nsInfo.getSuccessorIP(), nsInfo.successorPortListning);
-		 ObjectInputStream inputStreamFwd = new ObjectInputStream(fwdSocket.getInputStream());
-		 ObjectOutputStream outputStreamFwd = new ObjectOutputStream(fwdSocket.getOutputStream());
-		 outputStreamFwd.writeObject("lookup "+key);
-		 outputStreamFwd.writeObject("0");
-		 String value = (String) inputStreamFwd.readObject();
-		 String serverTracker = (String) inputStreamFwd.readObject();
-		 int count = 0;
-		 for(int i = 0; i < serverTracker.length(); i++)
-		 {
-			 if(serverTracker.charAt(i) == '-')
-				 count++;
-		 }
-		 Collections.sort(serverIDS);
-			System.out.println("Server Visited : "  );
+
+		nxtSrvSocket = new Socket(nsMeta.getSuccessorIP(), nsMeta.getSuccessorPort());
+		ObjectInputStream inputStreamFwd = new ObjectInputStream(nxtSrvSocket.getInputStream());
+		ObjectOutputStream outputStreamFwd = new ObjectOutputStream(nxtSrvSocket.getOutputStream());
+		outputStreamFwd.writeObject("lookup "+key);
+		outputStreamFwd.writeObject("0");
+		String value = (String) inputStreamFwd.readObject();
+		String hopInfo = (String) inputStreamFwd.readObject();
+		int count = 0;
+		for(int i = 0; i < hopInfo.length(); i++)
+		{
+		 if(hopInfo.charAt(i) == '-')
+			 count++;
+		}
+		Collections.sort(serverIDS);
+		System.out.print("Server Visited : " + hopInfo );
 		 for(int id : serverIDS) {
 			 if(count-1 < 0)
 				 System.out.println(id);
 			 else
 				 System.out.print(id + "->");
-				
+
 			 count--;
 			 if(count< 0)
 				 break;
 		 }
-		 fwdSocket.close();
+		nxtSrvSocket.close();
 		return value;
-		
 	}
 	void insert(int key, String value) throws IOException, ClassNotFoundException {
 		//check if the key should be in bootstrap
-		if(key > Collections.max(serverIDS)) {
+		if(key >= Collections.max(serverIDS)) {
 			System.out.println("Server Visited 0"  );
 			System.out.println("Key Inserted at 0"  );
+			if(data.containsKey(key)) System.out.println("Overwriting key: " + key);
 			data.put(key,value);
+			nsMeta.printInfo();
 		}
 			
 		else {
 		//if no then contact successor
-		 fwdSocket = new Socket(nsInfo.getSuccessorIP(), nsInfo.successorPortListning);
-		 ObjectInputStream inputStreamFwd = new ObjectInputStream(fwdSocket.getInputStream());
-		 ObjectOutputStream outputStreamFwd = new ObjectOutputStream(fwdSocket.getOutputStream());
-		 outputStreamFwd.writeObject("Insert "+key+" "+value);
-		
-		 String serverTracker = (String) inputStreamFwd.readObject();
-		 int count = 0;
-		 for(int i = 0; i < serverTracker.length(); i++)
-		 {
-			 if(serverTracker.charAt(i) == '-')
-				 count++;
-		 }
-		 Collections.sort(serverIDS);
-			System.out.println("Server Visited : "  );
+		nxtSrvSocket = new Socket(nsMeta.getSuccessorIP(), nsMeta.getSuccessorPort());
+		ObjectInputStream inputStreamFwd = new ObjectInputStream(nxtSrvSocket.getInputStream());
+		ObjectOutputStream outputStreamFwd = new ObjectOutputStream(nxtSrvSocket.getOutputStream());
+		outputStreamFwd.writeObject("insert "+key+" "+value);
+		String serverTracker = (String) inputStreamFwd.readObject();
+		int count = 0;
+		for(int i = 0; i < serverTracker.length(); i++) {
+			if(serverTracker.charAt(i) == '-')count++;
+			}
+		Collections.sort(serverIDS);
+			System.out.print("Hop Info : "  );
 		 for(int id : serverIDS) {
 			 if(count-1 < 0)
 				 System.out.println(id);
@@ -103,168 +100,135 @@ public class Bootstrap implements Serializable  {
 			 if(count< 0)
 				 break;
 		 }
-		 fwdSocket.close();
+			nxtSrvSocket.close();
 		}
 	}
 	void delete(int key) throws UnknownHostException, IOException, ClassNotFoundException {
 		
 		//if key in bootstrap server then dekete
 		if(key > Collections.max(serverIDS)) {
+			if(!data.containsKey(key)) {
+				System.out.println("Error: Key not found");
+				return;
+			}
 			System.out.println("Server Visited 0"  );
 			System.out.println("Key deleted at 0"  );
 			data.remove(key);
+			nsMeta.printInfo();
 		}
-			
 		else {
-		 fwdSocket = new Socket(nsInfo.getSuccessorIP(), nsInfo.successorPortListning);
-		 ObjectInputStream inputStreamFwd = new ObjectInputStream(fwdSocket.getInputStream());
-		 ObjectOutputStream outputStreamFwd = new ObjectOutputStream(fwdSocket.getOutputStream());
-		 outputStreamFwd.writeObject("delete "+key);
-
-		 String serverTracker = (String) inputStreamFwd.readObject();
-		 int count = 0;boolean notFound = false;
-		 for(int i = 0; i < serverTracker.length(); i++)
-		 {
-			 if(serverTracker.charAt(i) == '-')
-				 count++;
-			 else if(serverTracker.charAt(i) == 'N')
-				 notFound = true;
-		 }
-		 if(notFound)
-			 System.out.println("Key Not Found");
-		 else
-			 System.out.println("Deletion Succesful");
-		 Collections.sort(serverIDS);
+			nxtSrvSocket = new Socket(nsMeta.getSuccessorIP(), nsMeta.getSuccessorPort());
+			ObjectInputStream inputStreamFwd = new ObjectInputStream(nxtSrvSocket.getInputStream());
+			ObjectOutputStream outputStreamFwd = new ObjectOutputStream(nxtSrvSocket.getOutputStream());
+			outputStreamFwd.writeObject("delete "+key);
+			String serverTracker = (String) inputStreamFwd.readObject();
+			int count = 0;boolean notFound = false;
+			for(int i = 0; i < serverTracker.length(); i++) {
+				if(serverTracker.charAt(i) == '-')
+					count++;
+				else if(serverTracker.charAt(i) == 'N')
+					notFound = true;
+				}
+			if(notFound)
+				System.out.println("Key Not Found");
+			else
+				System.out.println("Deletion Succesful");
+			Collections.sort(serverIDS);
 			System.out.print("Server Visited : "  );
-		 for(int id : serverIDS) {
-			 if(count-1 < 0)
-				 System.out.println(id);
-			 else
-				 System.out.print(id + "->");
-				
-			 count--;
-			 if(count< 0)
-				 break;
-		 } 
-		fwdSocket.close();
-		//else check in successor
+			for(int id : serverIDS) {
+				if(count-1 < 0) System.out.println(id);
+				else
+					System.out.print(id + "->");
+				count--;
+				if(count< 0) break;
+			}
+			nxtSrvSocket.close();
 		}
 	}
 
 	
 	
 	public static void main(String[] args) throws IOException, ClassNotFoundException {
-		// TODO Auto-generated method stub
-	try {
-	
-		
-		serverPortForConnection = 0;
-		int id = 0;
-    
-		File configFile = new File("C:\\Users\\akshay1\\eclipse-workspace\\distributed-4\\bnConfigFile.txt"); 
-		
-		//read data from config file 	
-	
+		try {
+			File configFile = new File(args[0]);
 			Scanner sc = new Scanner(configFile);
-			id = Integer.parseInt(sc.nextLine());
-			serverPortForConnection = Integer.parseInt(sc.nextLine());
-			server = new ServerSocket(serverPortForConnection);//server for listing to new name server
+			ID = Integer.parseInt(sc.nextLine());
+			serverPort = Integer.parseInt(sc.nextLine());
+			serverSocket = new ServerSocket(serverPort);//only for listening commands from nameServer
 			Bootstrap bootstrap = new Bootstrap();
-		    while (sc.hasNextLine()) {
-				String[] line = sc.nextLine().split(" "); 
-				bootstrap.data.put(Integer.parseInt(line[0]),line[1]);
-		    }
-
-		BootstrapUI UI = new BootstrapUI(bootstrap);
-		    UI.start();
-		    int maxServerID = 0;
-		    while(true) {
-		    	socket = server.accept();
-		    	//System.out.println("added new NameServer");
-		    	ObjectInputStream inputStream = new ObjectInputStream(socket.getInputStream());
+			new BootstrapUI(bootstrap).start();
+			while (sc.hasNextLine()) {
+				String line = sc.nextLine();
+				bootstrap.data.put(Integer.parseInt(line.split(" ")[0]),line.split(" ")[1]);
+			}
+			int maxServerID = 0;
+			while(true) {
+				socket = serverSocket.accept();
+				ObjectInputStream inputStream = new ObjectInputStream(socket.getInputStream());
 				ObjectOutputStream outputStream = new ObjectOutputStream(socket.getOutputStream());
-				String nameServerDetails = (String) inputStream.readObject();
-				String[] nameServerDetailsStr = nameServerDetails.split(" ");
+				String msg = (String) inputStream.readObject();
+				System.out.println("\n" + msg);
+				String[] msgList = msg.split(" ");
 				//System.out.println(nameServerDetailsStr[0]);
-				int newNSId = 0;
-				int newNSListeningPort = 0;
-				String newNSIP = "";
-				if(!nameServerDetailsStr[0].equals("updateYourPredessorAndTakeAllKeys")) {
-					if( !nameServerDetailsStr[0].equals("updateYourSuccessor") && !nameServerDetailsStr[0].equals("updateMaxServerID") ) {
-						newNSId = Integer.parseInt(nameServerDetailsStr[1]);
-						newNSIP = nameServerDetailsStr[2];
-						newNSListeningPort = Integer.parseInt(nameServerDetailsStr[3]);
+				int nsID = 0;
+				int nsPort = 0;
+				String nsIP = "";
+				if(!msgList[0].equals("updateYourPredessorAndTakeAllKeys")) {
+					if( !msgList[0].equals("updateYourSuccessor") && !msgList[0].equals("updateMaxServerID") ) {
+						nsID = Integer.parseInt(msgList[1]);
+						nsIP = msgList[2];
+						nsPort = Integer.parseInt(msgList[3]);
 					}
-				
 				}
-				
-				
-				
-				switch(nameServerDetailsStr[0]) {
-				case "entry":
-					bootstrap.serverIDS.add(newNSId);
-					outputStream.writeObject(Inet4Address.getLocalHost().getHostAddress());
-					outputStream.writeObject(serverPortForConnection);
+				switch(msgList[0]) {
+				case "enter":
+					bootstrap.serverIDS.add(nsID);
+					outputStream.writeObject(bootstrap.nsMeta.getIP());
+					outputStream.writeObject(serverPort);
+					System.out.println("New NameServer Entering: " + nsID);
 					Collections.sort(bootstrap.serverIDS);
-					String serverTracker = "0";
-					for(int visitedId : bootstrap.serverIDS)
-						if(visitedId < newNSId)
-							serverTracker.concat("->"+visitedId);
-					
-					outputStream.writeObject(serverTracker);
-					if(bootstrap.nsInfo.getSuccessorId() == 0)//if only one server intial
-					{
-						outputStream.writeObject(bootstrap.nsInfo.serverPortForConnection);//succssor port
-						outputStream.writeObject(bootstrap.nsInfo.serverPortForConnection);//predessor port
-						outputStream.writeObject(bootstrap.nsInfo.id);//sucessor id
-						outputStream.writeObject(bootstrap.nsInfo.id);//predessor id
-						outputStream.writeObject(Inet4Address.getLocalHost().getHostAddress());//successor ip
-						outputStream.writeObject(Inet4Address.getLocalHost().getHostAddress());//predessor ip
-						bootstrap.nsInfo.updateInformation(newNSListeningPort, newNSListeningPort, newNSId, newNSId, newNSIP, newNSIP);
-						
+					String hopInfo = "0";
+					if(bootstrap.nsMeta.getSuccessorID() == 0) {//when only Bootstrap in system
+						outputStream.writeObject(bootstrap.nsMeta.getServerPort());//send NS's successor port
+						outputStream.writeObject(bootstrap.nsMeta.getServerPort());//send NS's predecessor port
+						outputStream.writeObject(bootstrap.nsMeta.getID());//send NS's successor id
+						outputStream.writeObject(bootstrap.nsMeta.getID());//send NS's predecessor id
+						outputStream.writeObject(bootstrap.nsMeta.getIP());//send NS's successor  ip
+						outputStream.writeObject(bootstrap.nsMeta.getIP());//send NS's predecessor ip
+						bootstrap.nsMeta.setRingMeta(nsID, nsIP, nsPort, nsID, nsIP, nsPort);
 						//give all the value from 0 to id
-						for(int key = 0; key < newNSId; key++) {
-							
+						for(int key = 0; key < nsID; key++) {
 							if(bootstrap.data.containsKey(key)) {
-								//System.out.println(key);
 								outputStream.writeObject(key);
 								outputStream.writeObject(bootstrap.data.get(key));
 								bootstrap.data.remove(key);
 							}
-					
 						}
 						outputStream.writeObject(-1);
+						System.out.println("data transferred");
 					}
-					else if(maxServerID < newNSId) {//this means bootstrap server has keys for this ns i.e enter at last
-						
-						System.out.println("Server with greates value");
-						bootstrap.nsInfo.predessorId = newNSId; //update predessor of bootstrap
-						
-						int nextServerListeningPort = bootstrap.nsInfo.successorPortListning;
-						String nextServerIP = bootstrap.nsInfo.getSuccessorIP();
-							
-						fwdSocket = new Socket(nextServerIP, nextServerListeningPort);
-						 
-						 ObjectInputStream inputStreamFwd = new ObjectInputStream(fwdSocket.getInputStream());
-						 ObjectOutputStream outputStreamFwd = new ObjectOutputStream(fwdSocket.getOutputStream());
-						 outputStreamFwd.writeObject("entryAtLast "+newNSId + " "+ newNSIP + " " + newNSListeningPort);
-						 
-						 int successorPortListning = (int) inputStreamFwd.readObject();
-						 outputStream.writeObject(successorPortListning);//send successor port
-						 int predessorPortListning = (int) inputStreamFwd.readObject();
-						 outputStream.writeObject(predessorPortListning);//send predessor port
-						 int successorId = (int) inputStreamFwd.readObject();
-						 outputStream.writeObject(successorId);//send successor id
-						 int predessorId = (int) inputStreamFwd.readObject();
-						 outputStream.writeObject(predessorId);//send predessor id
-						 String successorIP = (String) inputStreamFwd.readObject();	
-						 outputStream.writeObject(successorIP);//send sucessor ip
-						 String predessorIP = (String) inputStreamFwd.readObject();	
-						 outputStream.writeObject(predessorIP);//send predessor ip
-						 
-						 
-						for(int key = maxServerID; key < newNSId; key++) {
-							
+					else if(maxServerID < nsID) {//this is the new predecessor of Bootstrap
+						bootstrap.nsMeta.updatePredecessor(nsID, nsIP, nsPort); //update predessor of bootstrap
+						System.out.println("Info: creating socket with "+bootstrap.nsMeta.getSuccessorID());
+						nxtSrvSocket = new Socket(bootstrap.nsMeta.getSuccessorIP(), bootstrap.nsMeta.getSuccessorPort());
+						ObjectInputStream inputStreamFwd = new ObjectInputStream(nxtSrvSocket.getInputStream());
+						ObjectOutputStream outputStreamFwd = new ObjectOutputStream(nxtSrvSocket.getOutputStream());
+						outputStreamFwd.writeObject("enterAtLast "+nsID + " "+ nsIP + " " + nsPort);
+						int successorPort = (int) inputStreamFwd.readObject();
+						outputStream.writeObject(successorPort);//send successor port
+						int predessorPort = (int) inputStreamFwd.readObject();
+						outputStream.writeObject(predessorPort);//send predessor port
+						int successorId = (int) inputStreamFwd.readObject();
+						outputStream.writeObject(successorId);//send successor id
+						int predessorId = (int) inputStreamFwd.readObject();
+						outputStream.writeObject(predessorId);//send predessor id
+						String successorIP = (String) inputStreamFwd.readObject();
+						outputStream.writeObject(successorIP);//send sucessor ip
+						String predessorIP = (String) inputStreamFwd.readObject();
+						outputStream.writeObject(predessorIP);//send predessor ip
+
+						for(int key = maxServerID; key < nsID; key++) {
+
 							if(bootstrap.data.containsKey(key)) {
 								//System.out.println(key);
 								outputStream.writeObject(key);
@@ -275,104 +239,89 @@ public class Bootstrap implements Serializable  {
 						outputStream.writeObject(-1);
 					}
 					else {//if new ip is between two servers
-						
-						int nextServerListeningPort = bootstrap.nsInfo.successorPortListning;
-						String nextServerIP = bootstrap.nsInfo.getSuccessorIP();
-						
-						//1)if new nameserver is between current server and successor and update the successor of current server
-						 if(bootstrap.nsInfo.getSuccessorId() > newNSId)
-							 bootstrap.nsInfo.updateInformation(newNSListeningPort,bootstrap.nsInfo.predessorPortListning, newNSId, bootstrap.nsInfo.predessorId, newNSIP,bootstrap.nsInfo.predessorIP);
-						
-						//2) if new server is not in between,or even if it is between contact the next nameserver
-						 fwdSocket = new Socket(nextServerIP, nextServerListeningPort);
-						 
-						 ObjectInputStream inputStreamFwd = new ObjectInputStream(fwdSocket.getInputStream());
-						 ObjectOutputStream outputStreamFwd = new ObjectOutputStream(fwdSocket.getOutputStream());
-						 outputStreamFwd.writeObject("entry "+newNSId + " "+ newNSIP + " " + newNSListeningPort);
-						 
-						 int successorPortListning = (int) inputStreamFwd.readObject();
-						 outputStream.writeObject(successorPortListning);//send successor port
-						 int predessorPortListning = (int) inputStreamFwd.readObject();
-						 outputStream.writeObject(predessorPortListning);//send predessor port						 
-						 int successorId = (int) inputStreamFwd.readObject();
-						 outputStream.writeObject(successorId);//send successor id
-						 int predessorId = (int) inputStreamFwd.readObject();
-						 outputStream.writeObject(predessorId);//send predessor id
-						 String successorIP = (String) inputStreamFwd.readObject();	
-						 outputStream.writeObject(successorIP);//send successor ip
-						 String predessorIP = (String) inputStreamFwd.readObject();	
-						 outputStream.writeObject(predessorIP);//send predessor ip
-						while(true) {
-								
-								int key =  (int) inputStreamFwd.readObject();
-								outputStream.writeObject(key);
-								if(key == -1)
-									break;
-								
-								String value = (String) inputStreamFwd.readObject();
-								outputStream.writeObject(value);
-								
-							}
 
-						 fwdSocket.close();
-						 System.out.println("done");
+						int nextServerListeningPort = bootstrap.nsMeta.getSuccessorPort();
+						String nextServerIP = bootstrap.nsMeta.getSuccessorIP();
+						System.out.println("Getting the details from " + bootstrap.nsMeta.getSuccessorID());
+
+						//if new NS is before Bootstrap's successor
+						 if(bootstrap.nsMeta.getSuccessorID() > nsID)
+							 bootstrap.nsMeta.updateSuccessor(nsID,nsIP,nsPort);
+
+						//new NS is after Bootstrap's current successor
+						nxtSrvSocket = new Socket(nextServerIP, nextServerListeningPort);
+
+						ObjectInputStream inputStreamFwd = new ObjectInputStream(nxtSrvSocket.getInputStream());
+						ObjectOutputStream outputStreamFwd = new ObjectOutputStream(nxtSrvSocket.getOutputStream());
+						outputStreamFwd.writeObject("enter "+nsID + " "+ nsIP + " " + nsPort);
+
+						int successorPortListning = (int) inputStreamFwd.readObject();
+						outputStream.writeObject(successorPortListning);//send successor port
+						int predessorPortListning = (int) inputStreamFwd.readObject();
+						outputStream.writeObject(predessorPortListning);//send predessor port
+						int successorId = (int) inputStreamFwd.readObject();
+						outputStream.writeObject(successorId);//send successor id
+						int predessorId = (int) inputStreamFwd.readObject();
+						outputStream.writeObject(predessorId);//send predessor id
+						String successorIP = (String) inputStreamFwd.readObject();
+						outputStream.writeObject(successorIP);//send successor ip
+						String predessorIP = (String) inputStreamFwd.readObject();
+						outputStream.writeObject(predessorIP);//send predessor ip
+
+						while(true) {
+							int key =  (int) inputStreamFwd.readObject();
+							outputStream.writeObject(key);
+							if(key == -1) break;
+							String value = (String) inputStreamFwd.readObject();
+							outputStream.writeObject(value);
+						}
+						nxtSrvSocket.close();
+	//					System.out.println("done");
 					}
-					
-					
 					outputStream.close();
 					inputStream.close();
 					socket.close();
-						
+					System.out.println("Nameserver " + nsID + " entered successfully..");
 					break;
-					
+
 				case "updateYourPredessorAndTakeAllKeys":
 					System.out.println("In Successor to updateYourPredessorAndTakeAllKeys");
-					
-					int predessorPortListning = (int) inputStream.readObject();//update successor port
+
+					int predessorPort = (int) inputStream.readObject();//update successor port
 					int predessorId = (int) inputStream.readObject();//update successor id
 					String predessorIP = (String) inputStream.readObject();//update successor ip
-					bootstrap.nsInfo.updateInformation(bootstrap.nsInfo.successorPortListning, predessorPortListning, bootstrap.nsInfo.getSuccessorId(), predessorId,bootstrap.nsInfo.successorIP,predessorIP);
+					bootstrap.nsMeta.updatePredecessor(predessorId, predessorIP, predessorPort);
 					while(true) {
-						
 						int key =  (int) inputStream.readObject();
 						if(key == -1)
 							break;
-						
 						String value = (String) inputStream.readObject();
 						bootstrap.data.put(key, value);
 						System.out.println("Key : "+key+" Value : "+value);
-						
 					}
-					System.out.println("Updated Informatio successorId" + bootstrap.nsInfo.successorId);
-					
 					break;
-				
 				case "updateYourSuccessor":
 					System.out.println("In Predessor to updateYourSuccessor");
 					int successorPort = (int) inputStream.readObject();//update predessor port
 					int successorId = (int) inputStream.readObject();//update predessor id
 					String successorIP = (String) inputStream.readObject();//update predessor ip
-					bootstrap.nsInfo.updateInformation(successorPort, bootstrap.nsInfo.predessorPortListning,successorId, bootstrap.nsInfo.predessorId, successorIP,bootstrap.nsInfo.predessorIP);
-				break;
-				
+					bootstrap.nsMeta.updateSuccessor(successorId, successorIP, successorPort);
+
+					break;
 				case "updateMaxServerID":
 					int exitedID = (int) inputStream.readObject();
 					bootstrap.serverIDS.remove(Integer.valueOf(exitedID));
-					System.out.println("UpdatingMaxServerID..");
+					System.out.println("Updating last ServerID in the ring..");
 					break;
-				
 				}
 				maxServerID = Collections.max(bootstrap.serverIDS);
-				System.out.println("BOOTSTRAP SuccessorId : "+bootstrap.nsInfo.successorId + " PredessorId :"+bootstrap.nsInfo.predessorId);
-				
-
-		    }
-	
-		} catch (FileNotFoundException e) {
-		// TODO Auto-generated catch block
-				e.printStackTrace();
+				bootstrap.nsMeta.printInfo();
+				System.out.print("bootstrapSH> ");
 			}
 
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
 	}
 }
 
@@ -380,7 +329,6 @@ class BootstrapUI extends Thread implements Serializable {
 
 	Bootstrap bootstrap;
 	public BootstrapUI(Bootstrap bootstrap) {
-		// TODO Auto-generated constructor stub
 		this.bootstrap = bootstrap;
 	}
 	
@@ -400,26 +348,15 @@ class BootstrapUI extends Thread implements Serializable {
 				//System.out.println("In Lookup");
 				try {
 					System.out.println(bootstrap.lookup(Integer.parseInt(commandAndValue[1])));
-				} catch (NumberFormatException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (UnknownHostException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (ClassNotFoundException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
+				} catch (NumberFormatException  |  ClassNotFoundException | IOException e) {
 					e.printStackTrace();
 				}
 				break;
 				
-			case "Insert":
+			case "insert":
 				try {
 					bootstrap.insert(Integer.parseInt(commandAndValue[1]), commandAndValue[2]);
 				} catch (NumberFormatException | ClassNotFoundException | IOException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 				break;
@@ -428,7 +365,6 @@ class BootstrapUI extends Thread implements Serializable {
 				try {
 					bootstrap.delete(Integer.parseInt(commandAndValue[1]));
 				} catch (NumberFormatException | ClassNotFoundException | IOException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 				break;
