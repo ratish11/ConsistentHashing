@@ -3,10 +3,10 @@ import java.io.Serializable;
 import java.net.UnknownHostException;
 import java.util.Scanner;
 
-public class BootstrapUserInteraction extends Thread implements Serializable {
+public class BootstrapUI extends Thread implements Serializable {
 
 	Bootstrap bootstrap;
-	public BootstrapUserInteraction(Bootstrap bootstrap) {
+	public BootstrapUI(Bootstrap bootstrap) {
 		// TODO Auto-generated constructor stub
 		this.bootstrap = bootstrap;
 	}

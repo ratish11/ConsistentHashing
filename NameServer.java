@@ -11,13 +11,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
 
-public class NameServerMain implements Serializable  {
+public class NameServer implements Serializable  {
 
 	static Socket socket = null;
 	static ObjectOutputStream outputStream = null;
 	static ObjectInputStream inputStream = null;
 	static HashMap<Integer, String> data = new HashMap<>();
-	static NSInfoHelperClass nsInfo = null;
+	static NSMeta nsInfo = null;
 	 static Socket fwdSocket = null;
 	 
 	 String lookup(int key,String serverTracker) throws IOException, ClassNotFoundException {
@@ -101,7 +101,7 @@ public class NameServerMain implements Serializable  {
 	public static void main(String[] args) throws IOException, ClassNotFoundException {
 		// TODO Auto-generated method stub
 		List<String> configFile = Files.readAllLines(Paths.get(args[0]));
-		NameServerMain nameServer = new NameServerMain();
+		NameServer nameServer = new NameServer();
 		int id = Integer.parseInt(configFile.get(0));
 		int listeningPort = Integer.parseInt(configFile.get(1));
 		String serverIP = configFile.get(2).split(" ")[0];
@@ -110,7 +110,7 @@ public class NameServerMain implements Serializable  {
 		String bootstrapIP = "";
 		int bootstrapPort = 0;
 		Scanner s = new Scanner(System.in);
-		nameServer.nsInfo = new NSInfoHelperClass(id, listeningPort);
+		nameServer.nsInfo = new NSMeta(id, listeningPort);
 		do {
 			System.out.print("NameServer434 >");
 			input = s.nextLine();
@@ -150,7 +150,7 @@ public class NameServerMain implements Serializable  {
 				outputStream.close();
 				inputStream.close();
 				socket.close();
-				NameServerConnectionHandler thread = new NameServerConnectionHandler(nameServer);
+				NSInterface thread = new NSInterface(nameServer);
 				thread.start();
 				System.out.println("Successful entry");
 				System.out.println("Range of IDs managed ["+predessorId+","+id+"]");

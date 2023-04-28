@@ -7,16 +7,16 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
 
-public class NameServerConnectionHandler extends Thread implements Serializable  {
+public class NSInterface extends Thread implements Serializable  {
 	private static ServerSocket server = null;
 	static Socket socket = null;
 	static ObjectOutputStream outputStream = null;
 	static ObjectInputStream inputStream = null;
 	static HashMap<Integer, String> data = new HashMap<>();
-	static NSInfoHelperClass nsInfo = null;
-	NameServerMain nameServer = new NameServerMain();;
+	static NSMeta nsInfo = null;
+	NameServer nameServer = new NameServer();;
 	 static Socket fwdSocket = null;
-	public NameServerConnectionHandler(NameServerMain nameServer) {
+	public NSInterface(NameServer nameServer) {
 		// TODO Auto-generated constructor stub
 		this.nameServer = nameServer;
 	}

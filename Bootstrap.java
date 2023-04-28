@@ -8,11 +8,8 @@ import java.net.Inet4Address;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Scanner;
 
 import java.util.*;
@@ -27,9 +24,9 @@ public class Bootstrap implements Serializable  {
 	 static Socket fwdSocket = null;
 	static ArrayList<Integer> serverIDS = new ArrayList<>();
 	HashMap<Integer, String> data = new HashMap<>();
-	NSInfoHelperClass nsInfo;
+	NSMeta nsInfo;
 	public Bootstrap(){
-		nsInfo = new NSInfoHelperClass(0,serverPortForConnection);
+		nsInfo = new NSMeta(0,serverPortForConnection);
 		serverIDS.add(0);
 	}
 	
@@ -177,8 +174,8 @@ public class Bootstrap implements Serializable  {
 				String[] line = sc.nextLine().split(" "); 
 				bootstrap.data.put(Integer.parseInt(line[0]),line[1]);
 		    }
-		    
-		    BootstrapUserInteraction UI = new BootstrapUserInteraction(bootstrap);
+
+		BootstrapUI UI = new BootstrapUI(bootstrap);
 		    UI.start();
 		    int maxServerID = 0;
 		    while(true) {

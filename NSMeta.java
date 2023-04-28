@@ -1,7 +1,5 @@
 import java.io.Serializable;
-
-///////////////////BOOOTSTRAPP/////////////////////////////////////////////
-public class NSInfoHelperClass implements Serializable {
+public class NSMeta implements Serializable {
 	
 	int predessorPortListning;
 	int successorPortListning;
@@ -12,7 +10,7 @@ public class NSInfoHelperClass implements Serializable {
 	int id;
 	int serverPortForConnection;
 
-	public NSInfoHelperClass(int id, int serverPortForConnection) {
+	public NSMeta(int id, int serverPortForConnection) {
 		successorPortListning = 0;
 		successorId = 0;
 		this.predessorId = 0;
