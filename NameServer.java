@@ -118,6 +118,7 @@ public class NameServer {
         bdos.writeUTF("enter " + this.nsOperations.nsMeta.getID() + " " + this.nsOperations.nsMeta.getIP() + " " + this.nsOperations.nsMeta.getServerPort() + " " + temp.getLocalPort());
         System.out.println("waiting for accept");
         Socket tempSocket = temp.accept();
+        System.out.println("accepted");
         DataInputStream tempdis = new DataInputStream(tempSocket.getInputStream());
         //send commands over BootStrap Server's accept and everything else with NS's ServerSocket
 
