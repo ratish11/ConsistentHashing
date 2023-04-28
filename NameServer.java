@@ -175,32 +175,27 @@ class NameServerUI implements Runnable{
 
     @Override
     public void run() {
-//        try {
-//            Thread.sleep(100);
-//        } catch (InterruptedException e) {
-//            throw new RuntimeException(e);
-//        }
-//        Socket selfSocket;
-//        DataOutputStream selfDOS;
+        Socket selfSocket;
+        DataOutputStream selfDOS;
         String cmd = "";
         Scanner userInput = new Scanner(System.in);
         try {
             while(true) {
-//                selfSocket = new Socket(nameServer.nsOperations.nsMeta.getIP(), nameServer.nsOperations.nsMeta.getServerPort());
-//                selfDOS = new DataOutputStream(selfSocket.getOutputStream());
+                selfSocket = new Socket(nameServer.nsOperations.nsMeta.getIP(), nameServer.nsOperations.nsMeta.getServerPort());
+                selfDOS = new DataOutputStream(selfSocket.getOutputStream());
                 System.out.print("nameserver" + nameServer.nsOperations.nsMeta.getID() + "$> ");
                 cmd = userInput.nextLine();
                 if(cmd.trim().equals("enter")) {
-//                    selfDOS.writeUTF("enter");
-                    nameServer.enterRing();
+                    selfDOS.writeUTF("enter");
+//                    nameServer.enterRing();
                 } else if (cmd.trim().equals("exit")) {
-//                    selfDOS.writeUTF("exit");
-                    nameServer.exitRing();
+                    selfDOS.writeUTF("exit");
+//                    nameServer.exitRing();
                 } else {
                     System.out.println(cmd + ": command not found..");
                 }
-//                selfDOS.close();
-//                selfSocket.close();
+                selfDOS.close();
+                selfSocket.close();
             }
         } catch (IOException io) {
             io.printStackTrace();
