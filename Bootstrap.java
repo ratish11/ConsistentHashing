@@ -1,5 +1,6 @@
 //import org.jetbrains.annotations.NotNull;
 
+import javax.xml.crypto.Data;
 import java.io.*;
 import java.net.Inet4Address;
 import java.net.ServerSocket;
@@ -40,6 +41,10 @@ public class Bootstrap {
         nsConnAll.put(ID, bootstrap.nsOperations.nsMeta.getIP() + ":" + bootstrap.nsOperations.nsMeta.getServerPort());
 //        bootstrap.nsOperations.printInfo();
         new Thread(new BootstrapUI(bootstrap)).start();
+
+        //
+        Socket nsSockConn = new Socket("172.19.49.101", 4578);
+        new DataOutputStream(nsSockConn.getOutputStream()).writeUTF("sendKV " + 0 + " to " + 100);
         while(true) {
             serverSocket = new ServerSocket(serverPort);
             socket = serverSocket.accept();
