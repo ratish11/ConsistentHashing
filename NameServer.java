@@ -34,14 +34,11 @@ public class NameServer {
         new Thread(new NameServerUI(nameServer)).start();
         ServerSocket serverSocket = new ServerSocket(nsPort);
         Socket socket;
-//        Boolean dStreamInit = false;
         while(true) {
             socket = serverSocket.accept();
-//            if(!dStreamInit) {
-                dis = new DataInputStream(socket.getInputStream());
-                dos = new DataOutputStream(socket.getOutputStream());
-//                dStreamInit = true;
-//            }
+            System.out.println(socket);
+            dis = new DataInputStream(socket.getInputStream());
+            dos = new DataOutputStream(socket.getOutputStream());
             String msg = dis.readUTF();
             System.out.println("\n" + msg);
             if(msg.startsWith("enter")) { nameServer.enterRing(); }//nameServer.nsOperations.printInfo();
@@ -91,7 +88,7 @@ public class NameServer {
         this.nsOperations.printInfo();
     }
 
-    private void sendKVtoPredcessor(String msg, DataInputStream dis, DataOutputStream dos) throws IOException, InterruptedException {
+    private void sendKVtoPredcessor(String msg, DataInputStream dis, DataOutputStream dos) throws IOException {
         List<Integer> deleteKey = new ArrayList<>();
         int startKey = Integer.parseInt(msg.split(" ")[1]);
         int endKey = Integer.parseInt(msg.split(" ")[3]);
@@ -111,15 +108,18 @@ public class NameServer {
     public void enterRing() throws IOException {
         System.out.println("\nInfo: entering system...");
         String resp;
-        ServerSocket temp = new ServerSocket(nsPort);
+        ServerSocket temp = new ServerSocket(0);
 //        temp.setReuseAddress(true);
-        Socket tempSocket = temp.accept();
-        System.out.println("temp server created");
+        System.out.println(temp);
+
         Socket bootstrapSocket = new Socket(bootstrapIP, bootstrapPort);
         DataOutputStream bdos = new DataOutputStream(bootstrapSocket.getOutputStream());
+//        System.out.println("temp server created" + bootstrapSocket.isConnected());
+        bdos.writeUTF("enter " + this.nsOperations.nsMeta.getID() + " " + this.nsOperations.nsMeta.getIP() + " " + this.nsOperations.nsMeta.getServerPort() + " " + temp.getLocalPort());
+        Socket tempSocket = temp.accept();
         DataInputStream tempdis = new DataInputStream(tempSocket.getInputStream());
         //send commands over BootStrap Server's accept and everything else with NS's ServerSocket
-        bdos.writeUTF("enter " + this.nsOperations.nsMeta.getID() + " " + this.nsOperations.nsMeta.getIP() + " " + this.nsOperations.nsMeta.getServerPort() + " " + temp.getLocalPort());
+
         while(true) {
             resp = tempdis.readUTF();
             System.out.println(resp);
@@ -138,7 +138,7 @@ public class NameServer {
         }
         bdos.close();
         bootstrapSocket.close();
-        dis.close();
+        tempdis.close();
         tempSocket.close();
         temp.close();
     }

@@ -10,7 +10,7 @@ import java.util.*;
 public class Bootstrap {
     ArrayList<Integer> serverIDS = new ArrayList<>();
     HashMap<Integer, String> data = new HashMap<>();
-    static HashMap<Integer, Socket> nsConnAll = new HashMap<>();
+    static HashMap<Integer, String> nsConnAll = new HashMap<>();
     static ServerSocket serverSocket;
     static Socket socket;
     static int ID;
@@ -32,16 +32,20 @@ public class Bootstrap {
 
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.nsOperations.nsMeta.setRingMeta(ID, Inet4Address.getLocalHost().getHostAddress(), serverPort, ID, Inet4Address.getLocalHost().getHostAddress(), serverPort);
-        serverSocket = new ServerSocket(serverPort);
+//        serverSocket = new ServerSocket(serverPort);
         while(scanner.hasNextLine()) {
             String[] kv = scanner.nextLine().split(" ");
             bootstrap.nsOperations.data.put(Integer.parseInt(kv[0]), kv[1]);
         }
+        nsConnAll.put(ID, bootstrap.nsOperations.nsMeta.getIP() + ":" + bootstrap.nsOperations.nsMeta.getServerPort());
 //        bootstrap.nsOperations.printInfo();
         new Thread(new BootstrapUI(bootstrap)).start();
         while(true) {
+            serverSocket = new ServerSocket(serverPort);
             socket = serverSocket.accept();
-            nsConnAll.put(ID, socket);
+
+            System.out.println("Connection accepted");
+
             DataInputStream dis = new DataInputStream(socket.getInputStream());
             DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
             String nsMsg = dis.readUTF();
@@ -55,6 +59,8 @@ public class Bootstrap {
             else if (nsMsg.trim().split(" ")[0].equals("exit"))
                 bootstrap.nsExiting(nsMsg);
             System.out.print("\nbootstrapSh$> ");
+            socket.close();
+            serverSocket.close();
         }
     }
     private void nsEntering(String nsMsg) throws IOException {
@@ -66,13 +72,14 @@ public class Bootstrap {
         Socket tempNS = new Socket(nsIP, tempPort);
         DataOutputStream tempdos = new DataOutputStream(tempNS.getOutputStream());
 
-        nsConnAll.put(nsID, nsSockConn);
+        nsConnAll.put(nsID, nsIP+":"+nsPort);
 //        DataOutputStream dos = new DataOutputStream(nsSockConn.getOutputStream());
         if(this.serverIDS.contains(nsID)) {
             tempdos.writeUTF("Error: Duplicate NameServer ID");
             System.out.println("Error: Duplicate NameServer ID");
             return;
         }
+        serverIDS.add(nsID);
         int cursPred = 0;
         int cursSucc = 0;
         Collections.sort(serverIDS);
@@ -80,13 +87,10 @@ public class Bootstrap {
             if(id < nsID) cursPred = id;
             else if (id > nsID) { cursSucc = id; break; }
         }
-//        DataInputStream dis = new DataInputStream(sockConnWithNS.getInputStream());
-        serverIDS.add(nsID);
-        nsConnAll.put(nsID, nsSockConn);
         List<Integer> deleteKey =  getKeysFromSuccessor(nsID, cursPred, cursSucc, tempdos);
         System.out.println("data transferred");
 //            System.out.println(serverIDS);
-//            System.out.println(nsConnAll);
+            System.out.println(nsConnAll);
 //          Here check special case for Bootstrap server
         if(this.nsOperations.nsMeta.getPredecessorID() == 0 && this.nsOperations.nsMeta.getSuccessorID() == 0){
 //              only 1st name server entering will have succ and pred as Bootstrap
@@ -101,7 +105,7 @@ public class Bootstrap {
                 this.nsOperations.nsMeta.updateSuccessor(nsID, nsIP, nsPort);
                 tempdos.writeUTF("updatePredecessor: " + this.nsOperations.nsMeta.getID() + " " + this.nsOperations.nsMeta.getIP() + " " + this.nsOperations.nsMeta.getServerPort());
             } else {
-                Socket predSock = nsConnAll.get(cursPred);
+                Socket predSock = new Socket(nsConnAll.get(cursPred).split(":")[0], Integer.parseInt(nsConnAll.get(cursPred).split(":")[1]));
                 System.out.println("updating predecessor's successor");
                 tempdos.writeUTF("updatePredecessor: " + cursPred + " " + predSock.getInetAddress() + " " + predSock.getPort());
                 new DataOutputStream(predSock.getOutputStream()).writeUTF("updateSuccessor: " + nsID + " " + nsIP + " " + nsPort);
@@ -113,7 +117,7 @@ public class Bootstrap {
                 tempdos.writeUTF("updateSuccessor: " + this.nsOperations.nsMeta.getID() + " " + this.nsOperations.nsMeta.getIP() + " " + this.nsOperations.nsMeta.getServerPort());
             } else {
                 System.out.println("updating successor's predecessor");
-                Socket succSock = nsConnAll.get(cursSucc);
+                Socket succSock = new Socket(nsConnAll.get(cursSucc).split(":")[0], Integer.parseInt(nsConnAll.get(cursSucc).split(":")[1]));
                 tempdos.writeUTF("updateSuccessor: " + cursSucc + " " + succSock.getInetAddress() + " " + succSock.getPort());
                 new DataOutputStream(succSock.getOutputStream()).writeUTF("updatePredecessor: " + nsID + " " + nsIP + " " + nsPort);
             }
@@ -130,11 +134,15 @@ public class Bootstrap {
 //        System.out.println(this.nsOperations.nsMeta.getSuccessorID());
         System.out.println("NameServer " + nsID + " successfully entered the system.");
         nsOperations.printInfo();
+        tempNS.close();
     }
 
     private List<Integer> getKeysFromSuccessor(int selfID, int predID, int succID, DataOutputStream dos) throws IOException {
-        DataOutputStream succDos = new DataOutputStream(nsConnAll.get(succID).getOutputStream());
-        DataInputStream succDis = new DataInputStream(nsConnAll.get(succID).getInputStream());
+
+        Socket succSock = new Socket(nsConnAll.get(succID).split(":")[0], Integer.parseInt(nsConnAll.get(succID).split(":")[1]));
+        System.out.println(succSock);
+        DataOutputStream succDos = new DataOutputStream(succSock.getOutputStream());
+        DataInputStream succDis = new DataInputStream(succSock.getInputStream());
         System.out.println(selfID + " " + predID + " " + succID);
         List<Integer> deleteKey = new ArrayList<>();
         if(succID == 0) {
@@ -181,7 +189,7 @@ public class Bootstrap {
             if(id < nsID) cursPred = id;
             else if (id > nsID) { cursSucc = id; break; }
         }
-        Socket nsSockConn = nsConnAll.get(nsID);
+        Socket nsSockConn = new Socket(nsConnAll.get(nsID).split(":")[0], Integer.parseInt(nsConnAll.get(nsID).split(":")[1]));
         DataOutputStream dos = new DataOutputStream(nsSockConn.getOutputStream());
         DataInputStream dis = new DataInputStream(nsSockConn.getInputStream());
         transferKeysToSuccessor(nsID, cursPred, cursSucc, dis, dos);
@@ -190,18 +198,18 @@ public class Bootstrap {
             this.nsOperations.nsMeta.updateSuccessor(nsOperations.nsMeta.getID(), nsOperations.nsMeta.getIP(), nsOperations.nsMeta.getServerPort());
         } else if(cursPred == 0 && cursSucc != 0) {
 //          when leaving server is not linked to Bootstrap as successor
-            Socket succSockConn = nsConnAll.get(cursSucc);
+            Socket succSockConn = new Socket(nsConnAll.get(cursSucc).split(":")[0], Integer.parseInt(nsConnAll.get(cursSucc).split(":")[1]));
             this.nsOperations.nsMeta.updateSuccessor(cursSucc, String.valueOf(succSockConn.getInetAddress()), succSockConn.getPort());
             new DataOutputStream(succSockConn.getOutputStream()).writeUTF("predecessorInfo: " + nsOperations.nsMeta.getID() + " " + nsOperations.nsMeta.getIP() + " " + nsOperations.nsMeta.getServerPort());
         } else if(cursPred!=0 && cursSucc == 0) {
 //          when leaving server is not linked to Bootstrap as predecessor
-            Socket predSockConn = nsConnAll.get(cursPred);
+            Socket predSockConn = new Socket(nsConnAll.get(cursPred).split(":")[0], Integer.parseInt(nsConnAll.get(cursPred).split(":")[1]));
             new DataOutputStream(predSockConn.getOutputStream()).writeUTF("successorInfo: " + nsOperations.nsMeta.getID() + " " + nsOperations.nsMeta.getIP() + " " + nsOperations.nsMeta.getServerPort());
             this.nsOperations.nsMeta.updatePredecessor(cursPred, String.valueOf(predSockConn.getInetAddress()), predSockConn.getPort());
         } else {
 //          when leaving server is not linked to Bootstrap as predecessor or successor
-            Socket succSockConn = nsConnAll.get(cursSucc);
-            Socket predSockConn = nsConnAll.get(cursPred);
+            Socket succSockConn = new Socket(nsConnAll.get(cursSucc).split(":")[0], Integer.parseInt(nsConnAll.get(cursSucc).split(":")[1]));
+            Socket predSockConn = new Socket(nsConnAll.get(cursPred).split(":")[0], Integer.parseInt(nsConnAll.get(cursPred).split(":")[1]));
             new DataOutputStream(succSockConn.getOutputStream()).writeUTF("predecessorInfo: " + cursPred + " " + predSockConn.getInetAddress() + " " + predSockConn.getPort());
             new DataOutputStream(predSockConn.getOutputStream()).writeUTF("successorInfo: " + cursSucc + " " + succSockConn.getInetAddress() + " " + succSockConn.getPort());
         }
@@ -212,7 +220,8 @@ public class Bootstrap {
         dos.writeUTF("send KV from " + predID + " to " + selfID + "-1"); // tranfer from predID to selfID(exclusive)
 
         if(succID != 0) {
-            DataOutputStream succDos = new DataOutputStream(nsConnAll.get(succID).getOutputStream());
+            Socket succSocket = new Socket(nsConnAll.get(succID).split(":")[0], Integer.parseInt(nsConnAll.get(succID).split(":")[1]));
+            DataOutputStream succDos = new DataOutputStream(succSocket.getOutputStream());
             while(true) {
                  resp = dis.readUTF();
                  if(!resp.equals("endTransfer")) {
