@@ -163,6 +163,8 @@ public class Bootstrap {
         } else {
             System.out.println("getting data from " + succID );
 //            System.out.println(nsConnAll);
+            Socket nsSockConn = new Socket("172.19.49.101", 4578);
+            new DataOutputStream(nsSockConn.getOutputStream()).writeUTF("sendKV " + 0 + " to " + 100);
             succDos.writeUTF("sendKV " + predID + " to " + selfID); // tranfer from predID to selfID(exclusive)
             while(true) {
 //                System.out.println("\nwaiting");
