@@ -66,8 +66,8 @@ public class Bootstrap {
             System.out.print("\nbootstrapSh$> ");
             socket.close();
             serverSocket.close();
-            Socket nsSockConn = new Socket("172.19.49.101", 4578);
-            new DataOutputStream(nsSockConn.getOutputStream()).writeUTF("sendKV " + 0 + " to " + 100);
+//            Socket nsSockConn = new Socket("172.19.49.101", 4578);
+//            new DataOutputStream(nsSockConn.getOutputStream()).writeUTF("sendKV " + 0 + " to " + 100);
         }
     }
     private void nsEntering(String nsMsg) throws IOException {
