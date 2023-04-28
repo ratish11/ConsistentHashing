@@ -124,16 +124,17 @@ public class NameServer {
 
         while(true) {
             resp = tempdis.readUTF();
+            if(resp.startsWith("updatePredecessor")) updatePredecessor(resp);
+            resp = tempdis.readUTF();
+            if (resp.startsWith("updateSuccessor")) updateSuccessor(resp);
+            resp = tempdis.readUTF();
             System.out.println(resp);
             if(resp.startsWith("Error")) {
                 System.out.println(resp);
                 return;
             }
             if(resp.equals("endTransfer")) {
-                resp = tempdis.readUTF();
-                if(resp.startsWith("updatePredecessor")) updatePredecessor(resp);
-                resp = tempdis.readUTF();
-                if (resp.startsWith("updateSuccessor")) updateSuccessor(resp);
+
                 break;
             }
             this.data.put(Integer.valueOf(resp.split(" ")[0]), resp.split(" ")[1]);
