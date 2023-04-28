@@ -143,6 +143,7 @@ public class NameServer {
         tempSocket.close();
         temp.close();
         System.out.println("entering func complete");
+        return;
     }
 
     public void exitRing() throws IOException {
