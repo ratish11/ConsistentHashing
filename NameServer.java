@@ -142,6 +142,7 @@ public class NameServer {
         tempdis.close();
         tempSocket.close();
         temp.close();
+        System.out.println("entering func complete");
     }
 
     public void exitRing() throws IOException {
