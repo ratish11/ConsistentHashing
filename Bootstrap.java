@@ -94,7 +94,7 @@ public class Bootstrap {
             if(id < nsID) cursPred = id;
             else if (id > nsID) { cursSucc = id; break; }
         }
-        
+        List<Integer> deleteKey =  getKeysFromSuccessor(nsID, cursPred, cursSucc, tempdos);
         System.out.println("data transferred");
 //            System.out.println(serverIDS);
             System.out.println(nsConnAll);
@@ -131,7 +131,6 @@ public class Bootstrap {
 //                now transfer the keys to the newly added NameServer
         }
 //            delete the transfered key after completing pred and succ update
-        List<Integer> deleteKey =  getKeysFromSuccessor(nsID, cursPred, cursSucc, tempdos);
         for(Integer k : deleteKey) {
             this.data.remove(k);
         }
