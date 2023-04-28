@@ -49,7 +49,7 @@ public class Bootstrap {
             serverSocket = new ServerSocket(serverPort);
             socket = serverSocket.accept();
 
-            System.out.println("Connection accepted");
+//            System.out.println("Connection accepted");
 
             DataInputStream dis = new DataInputStream(socket.getInputStream());
             DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
@@ -94,7 +94,7 @@ public class Bootstrap {
             if(id < nsID) cursPred = id;
             else if (id > nsID) { cursSucc = id; break; }
         }
-        List<Integer> deleteKey =  getKeysFromSuccessor(nsID, cursPred, cursSucc, tempdos);
+        
         System.out.println("data transferred");
 //            System.out.println(serverIDS);
             System.out.println(nsConnAll);
@@ -131,6 +131,7 @@ public class Bootstrap {
 //                now transfer the keys to the newly added NameServer
         }
 //            delete the transfered key after completing pred and succ update
+        List<Integer> deleteKey =  getKeysFromSuccessor(nsID, cursPred, cursSucc, tempdos);
         for(Integer k : deleteKey) {
             this.data.remove(k);
         }
@@ -147,7 +148,7 @@ public class Bootstrap {
     private List<Integer> getKeysFromSuccessor(int selfID, int predID, int succID, DataOutputStream dos) throws IOException {
 
         Socket succSock = new Socket(nsConnAll.get(succID).split(":")[0], Integer.parseInt(nsConnAll.get(succID).split(":")[1]));
-        System.out.println(succSock);
+        System.out.println("********" + succSock);
         DataOutputStream succDos = new DataOutputStream(succSock.getOutputStream());
         DataInputStream succDis = new DataInputStream(succSock.getInputStream());
         System.out.println(selfID + " " + predID + " " + succID);
