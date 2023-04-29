@@ -23,7 +23,7 @@ public class NameServer implements Serializable  {
 	String lookup(int key,String hopInfo) throws IOException, ClassNotFoundException {
 		if(data.containsKey(key))
 			return (data.get(key));
-		else if(key > this.nsMeta.getID()) {
+		else if(key >= this.nsMeta.getID()) {
 			try {
 				nxtSrvSocket = new Socket(nsMeta.getSuccessorIP(), nsMeta.getSuccessorPort());
 				ObjectInputStream inputStreamFwd = new ObjectInputStream(nxtSrvSocket.getInputStream());
@@ -80,7 +80,7 @@ public class NameServer implements Serializable  {
 				return "NoKeyFound";
 			}
 
-		else if(key > this.nsMeta.getID()) {
+		else if(key >= this.nsMeta.getID()) {
 
 			nxtSrvSocket = new Socket(nsMeta.getSuccessorIP(), nsMeta.getSuccessorPort());
 			ObjectInputStream inputStreamFwd = new ObjectInputStream(nxtSrvSocket.getInputStream());
