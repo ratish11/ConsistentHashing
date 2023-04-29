@@ -42,7 +42,7 @@ public class NameServer implements Serializable  {
 					 e.printStackTrace();
 				 }
 			}
-			return "No key found";
+			return "NoKeyFound";
 		}
 	  String insert(int key, String value) throws UnknownHostException, IOException, ClassNotFoundException {
 			//check if the key should be in bootstrap

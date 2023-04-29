@@ -47,23 +47,22 @@ public class Bootstrap implements Serializable  {
 		String value = (String) inputStreamFwd.readObject();
 		String hopInfo = (String) inputStreamFwd.readObject();
 		int count = 0;
-		for(int i = 0; i < hopInfo.length(); i++)
-		{
-		 if(hopInfo.charAt(i) == '-')
-			 count++;
+		for(int i = 0; i < hopInfo.length(); i++) {
+		 	if(hopInfo.charAt(i) == '-')
+			 	count++;
 		}
 		Collections.sort(serverIDS);
 		System.out.print("Server Visited : " + hopInfo );
 		 for(int id : serverIDS) {
-			 if(count-1 < 0)
-				 System.out.println(id);
-			 else
-				 System.out.print(id + "->");
+			if(count-1 < 0)
+				System.out.println(id);
+			else
+				System.out.print(id + "->");
 
-			 count--;
-			 if(count< 0)
-				 break;
-		 }
+			count--;
+			if(count< 0)
+				break;
+		}
 		nxtSrvSocket.close();
 		return value;
 	}
@@ -339,7 +338,7 @@ class BootstrapUI extends Thread implements Serializable {
 		Scanner s = new Scanner(System.in);
 		do {
 			System.out.print("bootstrapSH> ");
-			input = s.nextLine();
+			input = s.nextLine().trim();
 			String[] commandAndValue = input.split(" ");
 			
 			switch(commandAndValue[0]) {
