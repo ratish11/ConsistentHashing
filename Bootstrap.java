@@ -113,8 +113,9 @@ public class Bootstrap implements Serializable  {
 				System.out.println("Error: Key not found");
 				return;
 			}
-			System.out.println("Server Visited 0"  );
-			System.out.println("Key deleted at 0"  );
+			System.out.println("Deletion Succesfull");
+			System.out.println("Server Visited 0");
+			
 			data.remove(key);
 			nsMeta.printInfo();
 		}
