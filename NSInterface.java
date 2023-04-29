@@ -46,11 +46,11 @@ public class NSInterface extends Thread implements Serializable  {
 						if(newNSId < nameServer.nsMeta.getID()) {//its in between
 							System.out.println("I'm here");
 							outputStream.writeObject(nameServer.nsMeta.getServerPort());//write successor
-							outputStream.writeObject(nameServer.nsMeta.getPredecessorPort()); //write predessor ip
+							outputStream.writeObject(nameServer.nsMeta.getPredecessorPort()); //write predecessor ip
 							outputStream.writeObject(nameServer.nsMeta.getID());//write successor id
 							outputStream.writeObject(nameServer.nsMeta.getPredecessorID());//write preccessor id
 							outputStream.writeObject(Inet4Address.getLocalHost().getHostAddress()); //write successor ip
-							outputStream.writeObject(nameServer.nsMeta.getPredecessorIP()); //write predessor ip
+							outputStream.writeObject(nameServer.nsMeta.getPredecessorIP()); //write predecessor ip
 							System.out.println("Sending keys from in range ["+nameServer.nsMeta.getPredecessorID()+","+newNSId+")");
 							for(int key = nameServer.nsMeta.getPredecessorID(); key < newNSId; key++) {
 
@@ -86,16 +86,16 @@ public class NSInterface extends Thread implements Serializable  {
 
 							int successorPortListning = (int) inputStreamFwd.readObject();
 							outputStream.writeObject(successorPortListning);//send successor port
-							int predessorPortListning = (int) inputStreamFwd.readObject();
-							outputStream.writeObject(predessorPortListning);//send predessor port
+							int predecessorPortListning = (int) inputStreamFwd.readObject();
+							outputStream.writeObject(predecessorPortListning);//send predecessor port
 							int successorId = (int) inputStreamFwd.readObject();
 							outputStream.writeObject(successorId);//send sender id
-							int predessorId = (int) inputStreamFwd.readObject();
-							outputStream.writeObject(predessorId);//send predessor id
+							int predecessorId = (int) inputStreamFwd.readObject();
+							outputStream.writeObject(predecessorId);//send predecessor id
 							String successorIP = (String) inputStreamFwd.readObject();
 							outputStream.writeObject(successorIP);//send successor ip
-							String predessorIP = (String) inputStreamFwd.readObject();
-							outputStream.writeObject(predessorIP);//send predessor ip
+							String predecessorIP = (String) inputStreamFwd.readObject();
+							outputStream.writeObject(predecessorIP);//send predecessor ip
 
 							while(true) {
 
@@ -132,27 +132,27 @@ public class NSInterface extends Thread implements Serializable  {
 							outputStreamFwd.writeObject("enterAtLast "+newNSId + " "+ newNSIP + " " + newNSListeningPort);
 
 							nextServerListeningPort = (int) inputStreamFwd.readObject();
-							int predessorPortListning = (int) inputStreamFwd.readObject();
+							int predecessorPortListning = (int) inputStreamFwd.readObject();
 							int successorID = (int) inputStreamFwd.readObject();
-							int PredessorID = (int) inputStreamFwd.readObject();
+							int predecessorID = (int) inputStreamFwd.readObject();
 							nextServerIP = (String) inputStreamFwd.readObject();
-							String PredessorIP = (String) inputStreamFwd.readObject();
+							String predecessorIP = (String) inputStreamFwd.readObject();
 
 							outputStream.writeObject(nextServerListeningPort);//send successor port
-							outputStream.writeObject(predessorPortListning);//send predessor port
+							outputStream.writeObject(predecessorPortListning);//send predecessor port
 							outputStream.writeObject(successorID);//send successor id
-							outputStream.writeObject(PredessorID);//send predessor id
+							outputStream.writeObject(predecessorID);//send predecessor id
 							outputStream.writeObject(nextServerIP);//send successor ip
-							outputStream.writeObject(PredessorIP);//send predessor ip
+							outputStream.writeObject(predecessorIP);//send predecessor ip
 
 						}
 						else {
 							outputStream.writeObject(nextServerListeningPort);//send successor port
-							outputStream.writeObject(nameServer.nsMeta.getPredecessorPort());//send predessor port
+							outputStream.writeObject(nameServer.nsMeta.getPredecessorPort());//send predecessor port
 							outputStream.writeObject(nameServer.nsMeta.getSuccessorID());//send successor id
-							outputStream.writeObject(nameServer.nsMeta.getID());//send predessor id
+							outputStream.writeObject(nameServer.nsMeta.getID());//send predecessor id
 							outputStream.writeObject(nextServerIP);//send successor ip
-							outputStream.writeObject(nameServer.nsMeta.getPredecessorIP());//send predessor ip
+							outputStream.writeObject(nameServer.nsMeta.getPredecessorIP());//send predecessor ip
 
 							System.out.println("Successor Id " + nameServer.nsMeta.getSuccessorID());
 							//update successor of current server
@@ -160,13 +160,13 @@ public class NSInterface extends Thread implements Serializable  {
 						}
 						break;
 
-					case "updateYourPredessorAndTakeAllKeys":
-//						System.out.println("In Successor to updateYourPredessorAndTakeAllKeys");
+					case "updateYourpredecessorAndTakeAllKeys":
+//						System.out.println("In Successor to updateYourpredecessorAndTakeAllKeys");
 
-						int predessorPort = (int) inputStream.readObject();//update successor port
-						int predessorId = (int) inputStream.readObject();//update successor id
-						String predessorIP = (String) inputStream.readObject();//update successor ip
-						nameServer.nsMeta.updatePredecessor(predessorId, predessorIP, predessorPort);
+						int predecessorPort = (int) inputStream.readObject();//update successor port
+						int predecessorId = (int) inputStream.readObject();//update successor id
+						String predecessorIP = (String) inputStream.readObject();//update successor ip
+						nameServer.nsMeta.updatePredecessor(predecessorId, predecessorIP, predecessorPort);
 						while(true) {
 							int key =  (int) inputStream.readObject();
 							if(key == -1) break;
@@ -208,10 +208,10 @@ public class NSInterface extends Thread implements Serializable  {
 						break;
 
 					case "updateYourSuccessor":
-						System.out.println("In Predessor to updateYourSuccessor");
-						int successorPort = (int) inputStream.readObject();//update predessor port
-						int successorId = (int) inputStream.readObject();//update predessor id
-						String successorIP = (String) inputStream.readObject();//update predessor ip
+						System.out.println("In predecessor to updateYourSuccessor");
+						int successorPort = (int) inputStream.readObject();//update predecessor port
+						int successorId = (int) inputStream.readObject();//update predecessor id
+						String successorIP = (String) inputStream.readObject();//update predecessor ip
 						nameServer.nsMeta.updateSuccessor(successorId, successorIP,successorPort);
 						break;
 					default:
