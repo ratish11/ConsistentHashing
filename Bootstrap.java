@@ -108,7 +108,7 @@ public class Bootstrap implements Serializable  {
 	void delete(int key) throws UnknownHostException, IOException, ClassNotFoundException {
 
 		//if key in bootstrap server then dekete
-		if(key > Collections.max(serverIDS)) {
+		if(key >= Collections.max(serverIDS)) {
 			if(!data.containsKey(key)) {
 				System.out.println("Error: Key not found");
 				return;
