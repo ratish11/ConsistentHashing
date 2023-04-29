@@ -47,13 +47,14 @@ public class Bootstrap implements Serializable  {
 		String value = (String) inputStreamFwd.readObject();
 		String hopInfo = (String) inputStreamFwd.readObject();
 		int count = 0;
-		for(int i = 0; i < hopInfo.length(); i++) {
-		 	if(hopInfo.charAt(i) == '-')
-			 	count++;
+		for(int i = 0; i < hopInfo.length(); i++)
+		{
+			if(hopInfo.charAt(i) == '-')
+				count++;
 		}
 		Collections.sort(serverIDS);
-		System.out.print("Server Visited : " + hopInfo );
-		 for(int id : serverIDS) {
+		System.out.print("Server Visited : "  );
+		for(int id : serverIDS) {
 			if(count-1 < 0)
 				System.out.println(id);
 			else
@@ -82,23 +83,25 @@ public class Bootstrap implements Serializable  {
 		ObjectInputStream inputStreamFwd = new ObjectInputStream(nxtSrvSocket.getInputStream());
 		ObjectOutputStream outputStreamFwd = new ObjectOutputStream(nxtSrvSocket.getOutputStream());
 		outputStreamFwd.writeObject("insert "+key+" "+value);
-		String serverTracker = (String) inputStreamFwd.readObject();
+		String hopInfo = (String) inputStreamFwd.readObject();
 		int count = 0;
-		for(int i = 0; i < serverTracker.length(); i++) {
-			if(serverTracker.charAt(i) == '-')count++;
+		for(int i = 0; i < hopInfo.length(); i++)
+			{
+				if(hopInfo.charAt(i) == '-')
+					count++;
 			}
-		Collections.sort(serverIDS);
-			System.out.print("Hop Info : "  );
-		 for(int id : serverIDS) {
-			 if(count-1 < 0)
-				 System.out.println(id);
-			 else
-				 System.out.print(id + "->");
-				
-			 count--;
-			 if(count< 0)
-				 break;
-		 }
+			Collections.sort(serverIDS);
+			System.out.println("Server Visited : "  );
+			for(int id : serverIDS) {
+				if(count-1 < 0)
+					System.out.println(id);
+				else
+					System.out.print(id + "->");
+
+				count--;
+				if(count< 0)
+					break;
+			}
 			nxtSrvSocket.close();
 		}
 	}
@@ -351,7 +354,6 @@ class BootstrapUI extends Thread implements Serializable {
 					e.printStackTrace();
 				}
 				break;
-				
 			case "insert":
 				try {
 					bootstrap.insert(Integer.parseInt(commandAndValue[1]), commandAndValue[2]);
