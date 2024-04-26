@@ -17,7 +17,7 @@ public class NameServer {
     NSOperations nsOperations;
     static DataInputStream dis;
     static DataOutputStream dos;
-    public NameServer() throws IOException {
+    public NameServer()  {
         this.nsOperations = new NSOperations(data, nsID, nsPort);
     }
     public static void main(String[] args) throws IOException, ClassNotFoundException, InterruptedException {
@@ -32,31 +32,31 @@ public class NameServer {
 
         NameServer nameServer = new NameServer();
         new Thread(new NameServerUI(nameServer)).start();
-
         ServerSocket serverSocket = new ServerSocket(nsPort);
         Socket socket;
-//        Boolean dStreamInit = false;
         while(true) {
-//            Thread.sleep(100);
             socket = serverSocket.accept();
-//            if(!dStreamInit) {
-                dis = new DataInputStream(socket.getInputStream());
-                dos = new DataOutputStream(socket.getOutputStream());
-//                dStreamInit = true;
-//            }
+            System.out.println(socket);
+            dis = new DataInputStream(socket.getInputStream());
+            dos = new DataOutputStream(socket.getOutputStream());
             String msg = dis.readUTF();
             System.out.println("\n" + msg);
-            if(msg.startsWith("enter")) { nameServer.enterRing(); }//nameServer.nsOperations.printInfo();
+            if(msg.startsWith("enter")) { nameServer.enterRing(); System.out.println("enterRing finish");}//nameServer.nsOperations.printInfo();
             else if(msg.startsWith("exit")) nameServer.exitRing();
-            else if (msg.startsWith("sendKV")) {nameServer.sendKVtoPredcessor(msg,dis, dos); break;}
+            else if (msg.startsWith("sendKV")) {nameServer.sendKVtoPredcessor(msg,dis, dos); }
             else if(!msg.startsWith("update")) {
                 String hopInfo = dis.readUTF();
                 if(msg.split(" ")[0].equals("lookup")) {
-                    nameServer.nsOperations.lookup(Integer.parseInt(msg.split(" ")[1]), hopInfo);
+                    String lookupResponse = nameServer.nsOperations.lookup(Integer.parseInt(msg.split(" ")[1]), hopInfo);
+                    dos.writeUTF(lookupResponse.split(" ")[0]);
+                    dos.writeUTF(lookupResponse.split(" ")[1]);
                 } else if (msg.split(" ")[0].equals("insert")) {
-                    nameServer.nsOperations.insert(Integer.parseInt(msg.split(" ")[1]), msg.split(" ")[2], hopInfo);
+                    String insertResponse = nameServer.nsOperations.insert(Integer.parseInt(msg.split(" ")[1]), msg.split(" ")[2], hopInfo);
+                    dos.writeUTF(insertResponse);
                 } else if (msg.split(" ")[0].equals("delete")) {
-                    nameServer.nsOperations.lookup(Integer.parseInt(msg.split(" ")[1]), hopInfo);
+                    String deleteResponse = nameServer.nsOperations.lookup(Integer.parseInt(msg.split(" ")[1]), hopInfo);
+                    dos.writeUTF(deleteResponse.split(" ")[0]);
+                    dos.writeUTF(deleteResponse.split(" ")[1]);
                 }
             } else if(msg.startsWith("updatePredecessor")) {
                 System.out.println("now update predecessor " + msg);
@@ -66,6 +66,8 @@ public class NameServer {
                 nameServer.updateSuccessor(msg);
             }
             System.out.print("nameserver" + nameServer.nsOperations.nsMeta.getID() + "$>> ");
+//            socket.close();
+//            serverSocket.close();
         }
     }
 
@@ -86,11 +88,11 @@ public class NameServer {
         this.nsOperations.printInfo();
     }
 
-    private void sendKVtoPredcessor(String msg, DataInputStream dis, DataOutputStream dos) throws IOException, InterruptedException {
+    private void sendKVtoPredcessor(String msg, DataInputStream dis, DataOutputStream dos) throws IOException {
         List<Integer> deleteKey = new ArrayList<>();
         int startKey = Integer.parseInt(msg.split(" ")[1]);
         int endKey = Integer.parseInt(msg.split(" ")[3]);
-        for(int key = startKey+1; key<=endKey; key++) {
+        for(int key = startKey; key<endKey; key++) {
             if(this.data.containsKey(key)) {
                 dos.writeUTF(String.valueOf(key) + " " + this.data.get(key));
                 deleteKey.add(key);
@@ -103,42 +105,67 @@ public class NameServer {
 //        Thread.sleep(100);
     }
 
-    public void enterRing() throws UnknownHostException, IOException {
+    public void enterRing() throws IOException {
         System.out.println("\nInfo: entering system...");
         String resp;
+        ServerSocket temp = new ServerSocket(0);
+//        temp.setReuseAddress(true);
+        System.out.println(temp);
+
         Socket bootstrapSocket = new Socket(bootstrapIP, bootstrapPort);
         DataOutputStream bdos = new DataOutputStream(bootstrapSocket.getOutputStream());
-        DataInputStream bdis = new DataInputStream(bootstrapSocket.getInputStream());
+//        System.out.println("temp server created" + bootstrapSocket.isConnected());
+        bdos.writeUTF("enter " + this.nsOperations.nsMeta.getID() + " " + this.nsOperations.nsMeta.getIP() + " " + this.nsOperations.nsMeta.getServerPort() + " " + temp.getLocalPort());
+        System.out.println("waiting for accept");
+        Socket tempSocket = temp.accept();
+        System.out.println("accepted");
+        DataInputStream tempdis = new DataInputStream(tempSocket.getInputStream());
+        //send commands over BootStrap Server's accept and everything else with NS's ServerSocket
 
-        bdos.writeUTF("enter " + this.nsOperations.nsMeta.getID() + " " + this.nsOperations.nsMeta.getIP() + " " + this.nsOperations.nsMeta.getServerPort());
         while(true) {
-            resp = bdis.readUTF();
+            resp = tempdis.readUTF();
             System.out.println(resp);
             if(resp.startsWith("Error")) {
                 System.out.println(resp);
                 return;
             }
             if(resp.equals("endTransfer")) {
-                resp = bdis.readUTF();
+                resp = tempdis.readUTF();
                 if(resp.startsWith("updatePredecessor")) updatePredecessor(resp);
-                resp = bdis.readUTF();
+                resp = tempdis.readUTF();
                 if (resp.startsWith("updateSuccessor")) updateSuccessor(resp);
                 break;
             }
             this.data.put(Integer.valueOf(resp.split(" ")[0]), resp.split(" ")[1]);
         }
-//        String predecessorInfo = bdis.readUTF();
-//        System.out.println(predecessorInfo);
-//        String successorInfo = bdis.readUTF();
-//        System.out.println(successorInfo);
-
-//
-//        this.nsOperations.nsMeta.setRingMeta(predecessorID, predecessorIP, predecessorPort, successorID, successorIP, successorPort);
-//        System.out.println(this.nsOperations.nsMeta.getPredecessorID());
-//        System.out.println(this.nsOperations.nsMeta.getSuccessorID());
+        bdos.close();
+        bootstrapSocket.close();
+        tempdis.close();
+        tempSocket.close();
+        temp.close();
+        System.out.println("entering func complete");
+        return;
     }
-    
-    public void exitRing() {
+
+    public void exitRing() throws IOException {
+        System.out.println("\nInfo: exiting system...");
+        String resp;
+        Socket bootstrapSocket = new Socket(bootstrapIP, bootstrapPort);
+        DataOutputStream bdos = new DataOutputStream(bootstrapSocket.getOutputStream());
+        DataInputStream bdis = new DataInputStream(bootstrapSocket.getInputStream());
+        bdos.writeUTF("exit " + " " + this.nsOperations.nsMeta.getID() + " " + this.nsOperations.nsMeta.getIP() + " " + this.nsOperations.nsMeta.getServerPort());
+        String response = bdis.readUTF();
+        int predID = Integer.parseInt(response.split(" ")[1]);
+        int selfID = Integer.parseInt(response.split(" ")[1]);
+        for(int key = predID; key<selfID; key++) {
+            if(data.containsKey(key)) {
+                bdos.writeUTF(key + " " + data.get(key));
+            }
+            data.clear();
+            bdos.writeUTF("endTransfer");
+        }
+
+
     }
 }
 class NameServerUI implements Runnable{
@@ -149,28 +176,27 @@ class NameServerUI implements Runnable{
 
     @Override
     public void run() {
-//        try {
-//            Thread.sleep(100);
-//        } catch (InterruptedException e) {
-//            throw new RuntimeException(e);
-//        }
         Socket selfSocket;
         DataOutputStream selfDOS;
         String cmd = "";
         Scanner userInput = new Scanner(System.in);
         try {
-            selfSocket = new Socket(nameServer.nsOperations.nsMeta.getIP(), nameServer.nsOperations.nsMeta.getServerPort());
-            selfDOS = new DataOutputStream(selfSocket.getOutputStream());
             while(true) {
+                selfSocket = new Socket(nameServer.nsOperations.nsMeta.getIP(), nameServer.nsOperations.nsMeta.getServerPort());
+                selfDOS = new DataOutputStream(selfSocket.getOutputStream());
                 System.out.print("nameserver" + nameServer.nsOperations.nsMeta.getID() + "$> ");
                 cmd = userInput.nextLine();
                 if(cmd.trim().equals("enter")) {
                     selfDOS.writeUTF("enter");
+//                    nameServer.enterRing();
                 } else if (cmd.trim().equals("exit")) {
                     selfDOS.writeUTF("exit");
+//                    nameServer.exitRing();
                 } else {
                     System.out.println(cmd + ": command not found..");
                 }
+                selfDOS.close();
+                selfSocket.close();
             }
         } catch (IOException io) {
             io.printStackTrace();
